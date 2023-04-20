@@ -40,3 +40,40 @@ Both yields the same string literal value: `Rin's note`.
 The tag is case-sensitive.
 
 refs: https://www.postgresql.org/docs/current/sql-syntax-lexical.html
+
+## Function
+
+We can define a function like this:
+```sql
+CREATE OR REPLACE FUNCTION sum(a INTEGER, b INTEGER) RETURNS INTEGER AS $$
+BEGIN
+    RETURN a + b;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+Since we specified the language to `plpgsql`, we use `PL/pgSQL` (a procedural language for PostgreSQL).
+
+The `BEGIN` and `END` keywords indicate that we use PL/pgSQL's block structure.
+
+In that block, we can use PL/pgSQL's features, such as using the `RETURN` keyword.
+
+Obviously, plain SQL does not have PL/pgSQL's features.
+
+After executing the above SQL, we can check the new function by `\df` like this:
+```
+postgres=# \df
+                           List of functions
+ Schema |    Name     | Result data type |  Argument data types  | Type
+--------+-------------+------------------+-----------------------+------
+ public | sum         | integer          | a integer, b integer  | func
+```
+
+We can check if the function works fine like this:
+```
+postgres=# SELECT sum(3, 8);
+ sum
+-----
+  11
+(1 row)
+```
