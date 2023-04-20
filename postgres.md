@@ -100,3 +100,20 @@ The result may look like this:
  t
 (1 row)
 ```
+
+## DO
+
+The `DO` statement looks like this:
+```plpgsql
+DO $$ 
+BEGIN 
+    RAISE NOTICE 'Yoi Yoi'; 
+END $$;
+```
+
+[This](https://www.postgresql.org/docs/current/sql-do.html) article says:
+> `DO` executes an `anonymous code block`, or in other words a `transient anonymous function` in a procedural language.
+>
+> The code block is treated as though it were the body of a function with <ins>**no parameters, returning void**</ins>.
+
+The `RAISE NOTICE` statement is used to print something.
