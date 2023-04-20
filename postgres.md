@@ -77,3 +77,26 @@ postgres=# SELECT sum(3, 8);
   11
 (1 row)
 ```
+
+## EXISTS
+
+We can check if the table has a record like this:
+```sql
+SELECT EXISTS(SELECT 1 FROM philosophers WHERE name = 'Mozi');
+```
+
+A constant `1` is arbitrarily used.
+
+It means the `SELECT` query will return 1 every time it finds a record that matches the `WHERE` clause.
+
+We are using an arbitrary constant because we don't care about the result of the SELECT query.
+
+All we need to know is whether a matching record exists or not.
+
+The result may look like this:
+```
+ exists
+--------
+ t
+(1 row)
+```
