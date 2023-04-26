@@ -32,7 +32,7 @@ $<optional tag>$<string literals>$<optional tag>$
 Here is an example:
 ```
 $$Rin's note$$
-$some tag$Rin's book$some tag$
+$some tag$Rin's note$some tag$
 ```
 
 Both yields the same string literal value: `Rin's note`.
@@ -48,7 +48,7 @@ We can define a function like this:
 CREATE OR REPLACE FUNCTION sum(a INTEGER, b INTEGER) RETURNS INTEGER AS $$
 BEGIN
     RETURN a + b;
-END;
+END
 $$ LANGUAGE plpgsql;
 ```
 
