@@ -1,3 +1,16 @@
+## Prepare for the authentication to use `aws` command
+
+1. Go to `IAM` on AWS website.
+2. Go to `Users` tab under `Access management`.
+3. Add a user.
+4. Edit the user like this:
+    1. Add the permission for using lambda. Ex: `AWSLambda_FullAccess`.
+    2. Create an access key from the `Security credentials` tab. Take a note of the access key ID and secret access key.
+5. Go to terminal and configure the `aws` cli like this:
+    ```sh
+    aws configure
+    ```
+
 ## Deploy the code
 
 Gradle configuration (build.gradle):
