@@ -26,6 +26,14 @@ Ex:
 aws lambda update-function-code --function-name note-front --zip-file fileb://./build/distributions/lambda-playground-0.0.1.zip
 ```
 
+## Specify the entrypoint of lambda function
+
+We need to tell the lambda which method it should run.
+
+1. Go to the lambda configuration page on AWS website.
+2. Go to the `Code` tab and edit the `Runtime settings`.
+3. Set the value of `Handler`. Ex: com.levelrin.YoiHandler::handleRequest
+
 ## HTTP Communication
 
 Add the following Gradle dependencies:
