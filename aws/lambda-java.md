@@ -93,3 +93,39 @@ public final class YoiHandler implements RequestHandler<APIGatewayV2HTTPEvent, A
 
 }
 ```
+
+## Access DynamoDB
+
+The lambda's execution role must have the permissions to access DynamoDB.
+
+1. Go to `IAM` on AWS website.
+2. Go to `Roles` tab under `Access management`.
+3. Click the role used by the lambda.
+4. Add permissions to grant access. Ex: AmazonDynamoDBFullAccess
+
+Gradle dependency:
+```groovy
+implementation 'com.amazonaws:aws-java-sdk-dynamodb:1.12.470'
+```
+
+Sample Java code:
+```java
+// Create a database object.
+// We don't have to worry about the authentication as long as it's executed by the lambda.
+final AmazonDynamoDB dynamoClient = AmazonDynamoDBClientBuilder.standard().build();
+final DynamoDB db = new DynamoDB(dynamoClient);
+
+// Get an item from the database.
+final Table users = db.getTable("users");
+final Item item = users.getItem("username", "test01");
+final String note = item.getString("note");
+```
+
+FYI, here are the imports:
+```java
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
+import com.amazonaws.services.dynamodbv2.document.DynamoDB;
+import com.amazonaws.services.dynamodbv2.document.Item;
+import com.amazonaws.services.dynamodbv2.document.Table;
+```
