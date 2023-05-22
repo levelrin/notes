@@ -167,3 +167,11 @@ import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import com.amazonaws.services.dynamodbv2.document.Item;
 import com.amazonaws.services.dynamodbv2.document.Table;
 ```
+
+## CORS
+
+Make sure the following:
+1. CORS is enabled in API Gateway
+    - The responder's endpoint should be configured, not the sender's.
+    - We should configure the response header values in the `Integration Response`.
+2.  The lambda also needs to include CORS headers in its response.
