@@ -126,10 +126,17 @@ final String note = item.getString("note");
 // Check if the item exists in the table.
 final Item item2 = users.getItem("username", "test02");
 if (item2 == null) {
-	// Item does not exist.
+    // Item does not exist.
 } else {
-	// Item exists.
+    // Item exists.
 }
+
+// Put a new item into the table.
+final Item item3 = new Item()
+    .withPrimaryKey("username", "test03")
+    .withString("note", "tres");
+// Note that it will overwrite the value if the item exists.
+users.putItem(item3);
 ```
 
 FYI, here are the imports:
