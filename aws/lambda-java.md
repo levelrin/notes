@@ -137,6 +137,26 @@ final Item item3 = new Item()
     .withString("note", "tres");
 // Note that it will overwrite the value if the item exists.
 users.putItem(item3);
+
+// Update an item.
+final Map<String, String> attributePlaceholders = new HashMap<>();
+attributePlaceholders.put("#N", "note");
+final Map<String, Object> valuePlaceholders = new HashMap<>();
+valuePlaceholders.put(":note", "one");
+// Note that it will create a new item if it does not exist.
+// The difference between putItem and updateItem method is that
+// putItem only changes the specified attributes, whereas
+// putItem replaces the entire item. Any unspecified attributes will be removed.
+users.updateItem(
+    // key attribute name
+    "username",
+    // key attribute value
+    "test01",
+    // update expression
+    "SET #N = :note",
+    attributePlaceholders,
+    valuePlaceholders
+);
 ```
 
 FYI, here are the imports:
