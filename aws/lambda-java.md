@@ -112,6 +112,9 @@ Sample Java code:
 ```java
 // Create a database object.
 // We don't have to worry about the authentication as long as it's executed by the lambda.
+// By the way, we can access it outside of lambda as long as the credentials are configured in the environment.
+// More info at https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html
+// Note that we must add permissions to the user corresponds to the credentials via IAM.
 final AmazonDynamoDB dynamoClient = AmazonDynamoDBClientBuilder.standard().build();
 final DynamoDB db = new DynamoDB(dynamoClient);
 
