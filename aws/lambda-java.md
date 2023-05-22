@@ -122,6 +122,14 @@ final DynamoDB db = new DynamoDB(dynamoClient);
 final Table users = db.getTable("users");
 final Item item = users.getItem("username", "test01");
 final String note = item.getString("note");
+
+// Check if the item exists in the table.
+final Item item2 = users.getItem("username", "test02");
+if (item2 == null) {
+	// Item does not exist.
+} else {
+	// Item exists.
+}
 ```
 
 FYI, here are the imports:
