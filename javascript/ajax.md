@@ -27,3 +27,32 @@ ajax.onerror = function() {
 }
 ajax.send();
 ```
+
+## POST
+
+```js
+const ajax = new XMLHttpRequest();
+ajax.open(
+    "POST",
+    "http://localhost:4567/yoi",
+    true
+);
+// We can have multiple headers by calling setRequestHeader() multiple times.
+ajax.setRequestHeader("Content-Type", "application/json");
+ajax.setRequestHeader("Authorization", "Bearer abc...");
+ajax.onload = function() {
+    if (ajax.status === 204) {
+        alert("Request succeeded.");
+    } else {
+        console.error("Request failed. Status code: " + ajax.status);
+    }
+}
+// Represent the JSON {"one":"uno"}
+const rawPayload = {
+    one: "uno"
+}
+// We need to convert the raw object into JSON string.
+// The server may receive "[object Object]" if we send the raw one.
+const jsonPayload = JSON.stringify(rawPayload);
+ajax.send(jsonPayload);
+```
