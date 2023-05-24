@@ -74,17 +74,17 @@ The response to the OPTIONS request must have the following response headers:
     - In that case, the header would look like this: `Access-Control-Allow-Origin: *`.
 3. [Access-Control-Allow-Headers](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Headers) if ajax sets headers.
     - For example, if the ajax sets `Content-Type` and `Authorization` headers, the response must have a header like this `Access-Control-Allow-Headers: Content-Type, Authorization`.
-    - The server don't have to worry about the request headers automatically set by the browser.
+    - The server doesn't have to worry about the request headers automatically set by the browser.
 4. [Access-Control-Allow-Methods](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Methods)
     - Ex: `Access-Control-Allow-Methods: GET, POST` or `Access-Control-Allow-Methods: *`
-    - Although it may not be required depending on the browser, it's better to specify just in case.
+    - Although it may not be required depending on the browser, it's better to specify, just in case.
 
 FYI, there are more CORS-related response headers to restrict requests.
 
 Note that the server must include the `Access-Control-Allow-Origin` header for the main endpoint as well.
 
-For example, if the ajax sends a POST request to the server, the browser will send an OPTIONS request to the endpoint first.
+For example, if ajax sends a POST request to the server, the browser will send an OPTIONS request to the endpoint first.
 
-Subsequenlty, the browser will send the POST request by the ajax.
+Subsequently, the browser will send the POST request by the ajax.
 
 As a result, the server must respond to both OPTIONS and POST requests with the same `Access-Control-Allow-Origin` header.
