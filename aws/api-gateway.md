@@ -22,3 +22,23 @@ After that, we can enable log like this:
 7. Click `Save Changes`.
 
 The log should be available in `CloudWatch` from now.
+
+## Return static page or data without actual integration
+
+Steps for `REST API`:
+1. Create a method if you have not:
+    1. Go to `Resources`.
+    2. Click `Actions` and `Create Method`.
+2. Select the method.
+3. Select the `Mock` for `Integration type` and click `Save`.
+4. Click `Integration Response` and expand the table.
+5. Expand `Mapping Templates`.
+6. Click `Add mapping template`.
+7. Put `Content-Type` (ex: text/html) and click the checkmark.
+8. A text area will appear on the right. Put the value you want, which will be returned by the endpoint.
+9. Click `Save`.
+10. Deploy.
+    1. Click `Actions` and `Deploy API`.
+
+Note that the modification of return value may not be reflected immediately after deploy.
+It takes some time.
