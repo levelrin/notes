@@ -174,6 +174,10 @@ Make sure the following:
 1. CORS is enabled in API Gateway
     - The responder's endpoint should be configured, not the sender's.
     - We should configure the response header values in the `Integration Response`.
+    - We can check if we configured correctly by sending an HTTP OPTIONS request like this:
+     ```sh
+     curl -v -X OPTIONS 'https://a1b2c3.execute-api.us-east-1.amazonaws.com/default/note-save'
+     ```
 2.  The lambda also needs to include CORS headers in its response.
 
 ## WebSocket
