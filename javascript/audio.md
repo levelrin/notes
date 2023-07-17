@@ -86,3 +86,52 @@ class OurProcessor extends AudioWorkletProcessor {
 // The second parameter must be the class name above.
 registerProcessor("ourProcessor", OurProcessor);
 ```
+
+### Pass data from the audio processor to the main thread
+
+Send data from the audio processor:
+```js
+class OurProcessor extends AudioWorkletProcessor {
+
+    constructor() {
+        super();
+    }
+    
+    process(inputList, outputList, parameters) {
+        // We can send any data via port.
+        this.port.postMessage(inputList);
+        
+        return true;
+    }
+
+}
+
+registerProcessor("ourProcessor", OurProcessor);
+```
+
+Receive the data:
+```js
+if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    navigator.mediaDevices.getUserMedia({audio: true}).then(function (stream) {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const audioSource = audioContext.createMediaStreamSource(stream);
+        audioContext.audioWorklet.addModule("ourProcessor.js").then(
+            function() {
+                const ourProcessor = new AudioWorkletNode(audioContext, "ourProcessor");
+
+                // Receive the data from the processor.
+                ourProcessor.port.onmessage = function(event) {
+                    // Print the data.
+                    console.log(event.data);
+                }
+
+                audioSource.connect(ourProcessor);
+                ourProcessor.connect(audioContext.destination);
+            },
+            function (rejectedReason) {
+                console.error(rejectedReason);
+            }
+        );
+    });
+}
+```
