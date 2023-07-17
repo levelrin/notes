@@ -135,3 +135,50 @@ if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     });
 }
 ```
+
+### Pass data from the main thread to the audio processor
+
+Send data from the main thread:
+```js
+// We pass the boolean flag in this example.
+// The data can be anything.
+ourProcessor.port.postMessage(false);
+```
+
+Receive the data:
+```js
+class OurProcessor extends AudioWorkletProcessor {
+
+    /**
+     * We will use this flag to either process the audio or not.
+     * @type {boolean} Whether we process the audio or temporarily stop the process.
+     */
+    active = true;
+
+    constructor() {
+        super();
+        // We must have this line.
+        this.port.onmessage = this.handleMessage.bind(this);
+    }
+
+    /**
+     * We must have this method to receive data from the main thread.
+     * @param event It's from the main thread. The data can be anything.
+     */
+    handleMessage(event) {
+        // We assume the main thread will pass boolean flag only in this example.
+        this.active = event.data;
+    }
+
+    process(inputList, outputList, parameters) {
+        // Use the data that can be manipulated by the main thread.
+        if (this.active) {
+            console.log(inputList);
+        }
+        return true;
+    }
+
+}
+
+registerProcessor("ourProcessor", OurProcessor);
+```
