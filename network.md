@@ -9,7 +9,7 @@ tcpdump -i eth0 -w /tmp/traffic.pcap
 
 `-w` to write the traffic on the specified file. Ex: `/tmp/traffic.pcap`
 
-After capturing the traffic, we can get the `pcap` file from the remote to the local like this:
+After capturing the traffic, we can get the `pcap` file from the remote to the local like this (it should be executed from the local terminal, not from the remote):
 ```sh
 scp -l 1000 user@remote-domain-or-ip:/tmp/traffic.pcap ~/local/file/path/traffic.pcap
 ```
