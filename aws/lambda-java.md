@@ -94,6 +94,17 @@ public final class YoiHandler implements RequestHandler<APIGatewayV2HTTPEvent, A
 }
 ```
 
+## Logging
+
+```java
+@Override
+public APIGatewayV2HTTPResponse handleRequest(final APIGatewayV2HTTPEvent event, final Context context) {
+    final LambdaLogger logger = context.getLogger();
+    // You will see this log in AWS CloudWatch.
+    logger.log("Yoi Yoi from lambda logger!");
+}
+```
+
 ## Access DynamoDB
 
 The lambda's execution role must have the permissions to access DynamoDB.
