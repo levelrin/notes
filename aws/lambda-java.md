@@ -191,6 +191,60 @@ Make sure the following:
      ```
 2.  The lambda also needs to include CORS headers in its response.
 
+## Invoke another lambda function asynchronously
+
+The invoker needs the `AWSLambdaRole` policy in `IAM`.
+
+The invoker needs the following dependency:
+```groovy
+implementation 'software.amazon.awssdk:apigatewaymanagementapi:2.20.74'
+```
+
+Invoke a lambda function like this:
+```java
+// Invoke lambda function asynchronously without waiting.
+final AWSLambda lambda = AWSLambdaAsyncClientBuilder.standard().build();
+lambda.invoke(
+    new InvokeRequest()
+        .withFunctionName("async-invokee")
+        .withInvocationType(InvocationType.Event)
+        .withPayload(
+            """
+            {"name":"test01", "fruit":"apple"}
+            """
+        )
+);
+```
+
+Here is the code for invokee.
+Handle the request like this:
+```java
+// We use RequestStreamHandler because the lambda may automatically deserialize the input and fail.
+// In other words, we want to make input deserialization our responsibility to avoid possible failure by lambda.
+public final class AsyncInvokee implements RequestStreamHandler {
+
+    @Override
+    public void handleRequest(final InputStream input, final OutputStream output, final Context context) throws IOException {
+        try (input; output) {
+            final LambdaLogger logger = context.getLogger();
+            final JsonObject json = new Gson().fromJson(
+                new String(input.readAllBytes(), StandardCharsets.UTF_8),
+                JsonObject.class
+            );
+            final String name = json.get("name").getAsString();
+            final String fruit = json.get("fruit").getAsString();
+            logger.log(
+                String.format(
+                    "name: %s, fruit: %s",
+                    name, fruit
+                )
+            );
+        }
+    }
+
+}
+```
+
 ## WebSocket
 
 We suggest creating lambdas before setting the routes in API Gateway to prevent a possible scenario in that API Gateway could not find the lambdas even if we configure it correctly for some reason.
