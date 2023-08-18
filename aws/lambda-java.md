@@ -197,7 +197,7 @@ The invoker needs the `AWSLambdaRole` policy in `IAM`.
 
 The invoker needs the following dependency:
 ```groovy
-implementation 'software.amazon.awssdk:apigatewaymanagementapi:2.20.74'
+implementation 'com.amazonaws:aws-java-sdk-lambda:1.12.530'
 ```
 
 Invoke a lambda function like this:
