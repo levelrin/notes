@@ -269,6 +269,10 @@ TBD.
 
 TBD.
 
+## LogisticRegression
+
+TBD.
+
 ## StandardScaler
 
 Here are the effects:
@@ -319,5 +323,21 @@ Cons:
  - Since it assumes the dataset is in Gaussian (normal) distribution, it might not be suitable for non-normal distributions.
 
 ## RobustScaler
+
+TBD.
+
+## MinMaxScaler
+
+TBD.
+
+## QuantileTransformer
+
+TBD.
+
+## PolynomialFeatures
+
+TBD.
+
+## OneHotEncoder
 
 TBD.
