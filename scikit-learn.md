@@ -277,3 +277,47 @@ Here are the effects:
 
 Here is the question:<br>
 `z = (x - μ) / σ`, where z is the result of the scaling.
+
+---
+
+Pros:
+- It makes the dataset easier to compare the relative importance of feature values.
+  For example, let's say we have the following dataset:
+  | Income | Age |
+  | ------ | --- |
+  | 60000  | 30  |
+  | 75000  | 35  |
+  | 40000  | 22  |
+  | 90000  | 45  |
+  | 55000  | 28  |
+  
+  We apply the `StandardScaler` like this:
+  ```python
+  from sklearn.preprocessing import StandardScaler
+
+  data = [[60000, 30], [75000, 35], [40000, 22], [90000, 45], [55000, 28]]
+  scaler = StandardScaler()
+  scaled_data = scaler.fit_transform(data)
+  ```
+  
+  The standardized data would look like this:
+  ```
+  [[-0.23328474 -0.25906388]
+  [ 0.64153303  0.38859582]
+  [-1.39970842 -1.2953194 ]
+  [ 1.51635079  1.68391522]
+  [-0.52489066 -0.51812776]]
+  ```
+  Since both income and age are on the same scale, it's easier to see their relative importance.
+- It centers the data by removing the mean, which can be important for algorithms that assume the dataset is centered like a normal distribution.
+- Since it operates independently on each feature, there is no leakage from the test set into the training set during scaling.
+  The term `leakage` refers to a situation where the dataset for testing is somehow included during the training. The leakage may cause overestimation.
+
+Cons:
+ - Since the mean and standard deviation can be heavily influenced by outliers, it might not be suitable for a dataset with extreme outliers. We may want to use the `RobustScaler` or other scalers instead.
+ - The original units and scales are lost, which might be important for some situations.
+ - Since it assumes the dataset is in Gaussian (normal) distribution, it might not be suitable for non-normal distributions.
+
+## RobustScaler
+
+TBD.
