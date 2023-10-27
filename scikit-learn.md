@@ -25,6 +25,22 @@ To make a model, we can do the following:
 1. Apply scaling to the dataset.
 2. Select the algorithm, such as a linear regression.
 
+---
+
+Scaling is a process of transforming your feature values to fit within a specific range. Ex: transforming the dataset unit-free.
+
+We might want to apply scaling before applying the algorithm for various reasons.
+
+For example, let's say we want to predict the price of a house using the number of shops nearby and the number of years since it was built.
+
+The number of shops nearby might almost always be larger than the number of years since the house was built.
+
+For that reason, the prediction might be biased towards the number of shops nearby.
+
+To equalize the influence of each feature, we may want to apply scaling.
+
+Additionally, some algorithms may require scaling before using them anyway.
+
 ## Load dataset for education
 
 ```python
@@ -255,4 +271,9 @@ TBD.
 
 ## StandardScaler
 
-TBD.
+Here are the effects:
+- The mean becomes zero (μ = 0).
+- The standard deviation becomes one (σ = 1).
+
+Here is the question:<br>
+`z = (x - μ) / σ`, where z is the result of the scaling.
