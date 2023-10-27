@@ -5,12 +5,13 @@ Data -> Model -> Prediction
 ---
 
 Two types of data: X and Y.
-- X is training data used to make predictions.<br>
-  AKA. Attribute<br>
+- X is the training dataset used to make predictions.<br>
+  AKA. Attributes or Feature values<br>
+  Imagine we have a table. Each column represents an attribute (feature).<br>
   Ex: House Info.
-- Y is training data that represents predictions.<br>
-  AKA. Target or label<br>
-  Ex: Corresponding house price.
+- Y is the training dataset that represents predictions.<br>
+  AKA. Targets or labels<br>
+  Ex: Corresponding house prices.
 
 ---
 
