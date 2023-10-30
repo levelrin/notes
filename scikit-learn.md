@@ -261,6 +261,41 @@ main()
 
 ```
 
+---
+
+We can configure metrics for `GridSearchCV`.
+It will select the best hyperparameters based on the metric we specified.
+
+Here is an example:
+```python
+model = GridSearchCV(
+    # We can use this parameter to specify the metrics that we want to use.
+    scoring={
+        # make_scorer, precision_score, and recall_score are provided by scikit-learn.
+        # Make sure you apply metrics compatible with the estimator (algorithm).
+        'precision': make_scorer(precision_score),
+        'recall_score': make_scorer(recall_score)
+    },
+
+    # We must use this parameter if we use the 'scoring' parameter.
+    # The GridSearchCV object will use this metric to generate a rank and pick the best hyperparameter.
+    # You may wonder what's the point of specifying multiple metrics then.
+    # Well, we can see the 'model.cv_results_' to check how the algorithm performs under various metrics.
+    # In other words, it's just for our information.
+    refit='precision',
+
+    # The rest of the parameters are irrelevant to the topic.
+    estimator=LogisticRegression(max_iter=1000),
+    param_gried={
+        'class_weight': [
+            {0: 1, 1: v} for v in range(1, 4)
+        ]
+    },
+    cv=4,
+    n_jobs=-1
+)
+```
+
 ## KNeighborsRegressor
 
 TBD.
@@ -339,5 +374,13 @@ TBD.
 TBD.
 
 ## OneHotEncoder
+
+TBD.
+
+## precision_score
+
+TBD.
+
+## recall_score
 
 TBD.
