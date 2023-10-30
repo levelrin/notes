@@ -308,6 +308,10 @@ TBD.
 
 TBD.
 
+## IsolationForest
+
+TBD.
+
 ## StandardScaler
 
 Here are the effects:
