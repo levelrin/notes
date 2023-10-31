@@ -296,6 +296,16 @@ model = GridSearchCV(
 )
 ```
 
+---
+
+`GridSearchCV` is an example of meta-estimators.
+
+A `meta-estimator` is an estimator that takes another estimator as a parameter.
+
+## VotingClassifier
+
+TBD.
+
 ## KNeighborsRegressor
 
 TBD.
@@ -370,6 +380,14 @@ TBD.
 TBD.
 
 ## QuantileTransformer
+
+TBD.
+
+## ColumnTransformer
+
+TBD.
+
+## FeatureUnion
 
 TBD.
 
