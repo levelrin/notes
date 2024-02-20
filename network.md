@@ -31,3 +31,19 @@ See the `IPv4 Address` of your network interface.
 For example, if the Windows machine is connected to WiFi, you should look for the `Wireless LAN adapter Wi-Fi`.
 
 Other devices should be able to access your server using that IP address as long as they are connected to the same WiFi.
+
+### Server running on macOS
+
+You can see your IP address like this: `System Settings` -> `Network` -> Select the connected network interface -> `Details...`.
+
+Alternatively, you can run this command on Mac:
+```sh
+ifconfig | grep 'inet ' | grep -v '127.0.0.1'
+```
+
+`ifconfig` shows all the network interface information.
+
+`grep 'inet '` means match the line containing the string 'inet '.
+
+`grep -v '127.0.0.1' means exclude the line containing the string '127.0.0.1'.
+We want to exclude the loopback address.
