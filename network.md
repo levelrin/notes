@@ -47,3 +47,32 @@ ifconfig | grep 'inet ' | grep -v '127.0.0.1'
 
 `grep -v '127.0.0.1' means exclude the line containing the string '127.0.0.1'.
 We want to exclude the loopback address.
+
+### Server running on WSL2 Docker
+
+Open your WSL2 terminal and run this command to see your private IP for WSL2:
+```sh
+ifconfig | grep 'inet ' | grep -v '127.0.0.1'
+```
+
+Next, run Windows PowerShell as administrator and run the following commands.
+(You need to replace `<port for your server>` and `<private IP for WSL2>`)
+```command
+netsh advfirewall firewall add rule name="Allowing LAN connections" dir=in action=allow protocol=TCP localport=<port for your server>
+netsh interface portproxy add v4tov4 listenport=<port for your server> listenaddress=0.0.0.0 connectport=<port for your server> connectaddress=<private IP for WSL2>
+```
+
+The above command allows the firewall to accept inbound connections for the specified port and forward the port from the host to WSL2.
+
+FYI, you can undo the above commands like this:
+```command
+netsh advfirewall firewall delete rule name="Allowing LAN connections"
+netsh interface portproxy delete v4tov4 listenport=<port for your server> listenaddress=0.0.0.0
+```
+
+Now, you should be able to access the server from a different device using the server's host machine's private IP address.
+
+Run the following Windows command to see the server's host machine's private IP:
+```sh
+ipconfig
+```
