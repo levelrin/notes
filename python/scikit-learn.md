@@ -302,25 +302,83 @@ model = GridSearchCV(
 
 A `meta-estimator` is an estimator that takes another estimator as a parameter.
 
-## VotingClassifier
+## Neural Networks
 
-TBD.
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.neural_network import MLPClassifier
 
-## KNeighborsRegressor
+# All data for training.
+x = [0.5, 1, 1.5, 2, 2.5, 4, 4.5, 5, 5.5, 6, 7.5, 8, 8.5, 9, 9.5]
+y = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0]
 
-TBD.
+# Artifical Neural Network (ANN)
+model = MLPClassifier(
+	# (2,) means 1 hidden layer with 2 nodes.
+	# (3, 4) means 2 hidden layers. First layer has 3 nodes and second layer has 4 nodes.
+	# (5, 6, 7) means 3 hidden layers. First layer has 5 nodes, second layer has 6 nodes, and third layer has 7 nodes.
+	hidden_layer_sizes=(2,),	
+	activation="logistic", 
+	solver="lbfgs", 
+	# Maximum try for optimization.
+	max_iter=10000, 
+	# Seed for random generator used in the algorithm.
+	# Specifying this is useful to reproduce the result.
+	random_state=1
+)
 
-## LinearRegression
+# model.fit() method requires 2D array for x.
+# array.reshape(-1, 1) will convert 1D array to 2D like this:
+# Original: [1, 2, ,3]
+# After reshape: [[1], [2], [3]]
+# First parameter of reshape represents the total size of the new array.
+# -1 is a magic number meaning that the total size of the new array is the same as the original array's total size.
+# Second parameter of reshape represents the size of each element in the new array.
+x_2d = np.array(x).reshape(-1, 1)
 
-TBD.
+model.fit(x_2d, y)
 
-## LogisticRegression
+# It will print the following:
+# Weights: [array([[-6.38637576, -4.35627248]]), array([[-15.70729999],[ 15.93923995]])]
+# Biases: [array([21.89251891, 29.70956915]), array([-8.30789949])]
+print(f"Weights: {model.coefs_}")
+print(f"Biases: {model.intercepts_}")
 
-TBD.
+# It will print this:
+# Probabilities for x = 5: [[4.87900059e-04 9.99512100e-01]]
+# First number is the probability that the data belongs to group 0.
+# Second number is the probability that the data belongs to group 1.
+# model.predict_proba takes 2D array as an input.
+print(f"Prediction for x = 5: {model.predict_proba([[5]])}")
 
-## IsolationForest
+# Let the model classify the data.
+# It will print this:
+# The model predicts x = 5 belongs to : [1]
+print(f"The model predicts x = 5 belongs to : {model.predict([[5]])}")
 
-TBD.
+# The below is just for the show.
+
+# Data that belongs to group 0.
+x_0 = [0.5, 1, 1.5, 2, 2.5, 7.5, 8, 8.5, 9, 9.5]
+y_0 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+plt.scatter(x_0, y_0, color="red")
+
+# Data that belongs to group 1.
+x_1 = [4, 4.5, 5, 5.5, 6]
+y_1 = [1, 1, 1, 1, 1]
+plt.scatter(x_1, y_1, color="green")
+
+# Generate evenly spaced 1000 numbers from 0 to 10 (all-inclusive).
+model_x = np.linspace(0, 10, 1000)
+model_probabilities = model.predict_proba(np.array(model_x).reshape(-1, 1))
+# Make the array of probability that the data belongs to group 1.
+model_y = [item[1] for item in model_probabilities]
+
+plt.plot(model_x, model_y)
+plt.show()
+
+```
 
 ## StandardScaler
 
@@ -370,39 +428,3 @@ Cons:
  - Since the mean and standard deviation can be heavily influenced by outliers, it might not be suitable for a dataset with extreme outliers. We may want to use the `RobustScaler` or other scalers instead.
  - The original units and scales are lost, which might be important for some situations.
  - Since it assumes the dataset is in Gaussian (normal) distribution, it might not be suitable for non-normal distributions.
-
-## RobustScaler
-
-TBD.
-
-## MinMaxScaler
-
-TBD.
-
-## QuantileTransformer
-
-TBD.
-
-## ColumnTransformer
-
-TBD.
-
-## FeatureUnion
-
-TBD.
-
-## PolynomialFeatures
-
-TBD.
-
-## OneHotEncoder
-
-TBD.
-
-## precision_score
-
-TBD.
-
-## recall_score
-
-TBD.
