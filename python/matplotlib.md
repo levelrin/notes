@@ -25,6 +25,25 @@ ax.plot(x, y)
 plt.show()
 ```
 
+## Combination of Dots and Lines
+
+```python
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots()
+
+x = [1, 2, 3, 4]
+y = [0, 2, 4, 6]
+ax.scatter(x, y)
+
+# Draw a straight line from (-1, 5) to (5, -1).
+ax.plot([-1, 5], [5, -1], color="orange")
+
+ax.scatter(0, 1, color="green")
+
+plt.show()
+```
+
 ## Draw Grid
 
 ```python
@@ -51,11 +70,11 @@ ax.set_xticks(np.arange(x_min, x_max + 1, x_grid_unit))
 ax.set_yticks(np.arange(y_min, y_max + 1, y_grid_unit))
 
 # Draw x and y axis to display origin.
-ax.axhline(0, color='black', linewidth=1)
-ax.axvline(0, color='black', linewidth=1)
+ax.axhline(0, color="black", linewidth=1)
+ax.axvline(0, color="black", linewidth=1)
 
 # Make the length of x and y units the same.
-ax.set_aspect('equal')
+ax.set_aspect("equal")
 
 plt.show()
 ```
