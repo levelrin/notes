@@ -78,3 +78,39 @@ ax.set_aspect("equal")
 
 plt.show()
 ```
+
+## Graph Function
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots()
+
+# Define a function like this.
+def f(x): return 2 * x + 1
+
+# It generates an array of 100 evenly spaced values from -10 to 10 (all-inclusive).
+x_values = np.linspace(-10, 10, 100)
+y_values = f(x_values)
+
+plt.plot(x_values, y_values)
+
+# Display the line in a grid.
+x_min = -10
+x_max = 10
+y_min = -10
+y_max = 10
+x_grid_unit = 1
+y_grid_unit = 1
+ax.grid(True)
+ax.set_xlim(x_min, x_max)
+ax.set_ylim(y_min, y_max)
+ax.set_xticks(np.arange(x_min, x_max + 1, x_grid_unit))
+ax.set_yticks(np.arange(y_min, y_max + 1, y_grid_unit))
+ax.axhline(0, color="black", linewidth=1)
+ax.axvline(0, color="black", linewidth=1)
+ax.set_aspect("equal")
+
+plt.show()
+```
