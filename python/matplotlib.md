@@ -142,3 +142,44 @@ plt.legend()
 
 plt.show()
 ```
+
+## Multiple Plots
+
+The term `figure` represents a window.
+
+The term `plot` represents a graph.
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Create some data.
+x = np.linspace(0, 2 * np.pi, 400)
+y = np.sin(x ** 2)
+
+# Create a figure and a 2x2 grid of subplots.
+fig, axs = plt.subplots(2, 2)
+
+# Adjust the vertical (hspace) and horizontal (wspace) spacing between subplots.
+plt.subplots_adjust(hspace=0.4, wspace=0.4)
+
+# Top left plot.
+axs[0, 0].plot(x, y)
+axs[0, 0].set_title('Axis [0, 0]')
+
+# Top right plot.
+# The third parameter is the format string.
+# 'tab:orange' represents the orange color in the Tableau palette.
+axs[0, 1].plot(x, y, 'tab:orange')
+axs[0, 1].set_title('Axis [0, 1]')
+
+# Bottom left plot.
+axs[1, 0].plot(x, -y, 'tab:green')
+axs[1, 0].set_title('Axis [1, 0]')
+
+# Bottom right plot.
+axs[1, 1].plot(x, -y, 'tab:red')
+axs[1, 1].set_title('Axis [1, 1]')
+
+plt.show()
+```
