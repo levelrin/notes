@@ -314,6 +314,8 @@ x = [0.5, 1, 1.5, 2, 2.5, 4, 4.5, 5, 5.5, 6, 7.5, 8, 8.5, 9, 9.5]
 y = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0]
 
 # Artifical Neural Network (ANN)
+# In this example, we are using a classifier.
+# We should use MLPRegressor instead if we want to solve a regression problem.
 model = MLPClassifier(
 	# (2,) means 1 hidden layer with 2 nodes.
 	# (3, 4) means 2 hidden layers. First layer has 3 nodes and second layer has 4 nodes.
@@ -350,6 +352,7 @@ print(f"Biases: {model.intercepts_}")
 # First number is the probability that the data belongs to group 0.
 # Second number is the probability that the data belongs to group 1.
 # model.predict_proba takes 2D array as an input.
+# Note that MLPRegressor does not have this method. We should use model.predict() instead.
 print(f"Prediction for x = 5: {model.predict_proba([[5]])}")
 
 # Let the model classify the data.
