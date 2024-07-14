@@ -183,3 +183,73 @@ axs[1, 1].set_title('Axis [1, 1]')
 
 plt.show()
 ```
+
+## Animation
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.animation import FuncAnimation
+
+
+def main():
+    fig, ax = plt.subplots()
+
+    # Prepare data.
+    def f(x): return x ** 2
+    x_values = np.linspace(-10, 10, 100)
+    y_values = f(x_values)
+
+    # Plot an empty data to get the line object.
+    # We will use that line object to draw a real line with animation.
+    # ax.plot([], []) returns a list with only one element (a Line2D object) in it.
+    # As the name suggests, Line2D object is for drawing a line.
+    # By the way, we may have multiple lines in the list depending on how many lines we plot.
+    # For example, `ax.plot([], [], [], [])` will return 2 lines in the list.
+    # The below line is the same as `line = ax.plot([], [])[0]`.
+    # In Python, we can unpack the list and directly assign variables to each element using commas.
+    line, = ax.plot([], [])
+
+    # It updates the diagram on each frame (integer).
+    # We can use the frame as the current index of the data list.
+    def update(frame):
+        # Plot the data until the current frame.
+        line.set_data(x_values[:frame], y_values[:frame])
+        # We must return the list of lines.
+        return [line]
+
+    # It's necessary to assign a variable.
+    # The animation won't work without a variable because it will be garbage-collected... smh
+    animation = FuncAnimation(
+        fig=fig,
+        # This function will be called on every frame.
+        # It must have the frame parameter and return the list of `Artist` objects.
+        # By the way, `Line2D` is a subtype of `Artist`.
+        func=update,
+        # Number of frames.
+        frames=len(x_values),
+        # Interval between each frame in milliseconds.
+        # By the way, you may not be able to make it superfast by reducing it to a really low value
+        # because the actual animation depends on the refreshment rate of your monitor.
+        interval=50,
+        # Do not restart the animation when it's done.
+        repeat=False
+    )
+
+    # Fix the size of the diagram.
+    x_min = -10
+    x_max = 10
+    y_min = 0
+    y_max = 100
+    ax.set_xlim(x_min, x_max)
+    ax.set_ylim(y_min, y_max)
+
+    plt.show()
+
+    # We can create an animation file like this.
+    # By the way, the file is created in the current directory.
+    animation.save("plot.gif")
+
+
+main()
+```
