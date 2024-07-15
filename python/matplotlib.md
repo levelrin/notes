@@ -253,3 +253,22 @@ def main():
 
 main()
 ```
+
+## Draw 3D Lines
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+def main():
+    x_values = np.linspace(0, 10, 100)
+    y_values = np.linspace(0, 10, 100)
+    z_values = np.linspace(0, 10, 100)
+    ax = plt.axes(projection="3d")
+    ax.plot3D(x_values, y_values, z_values)
+    plt.show()
+
+
+main()
+```
