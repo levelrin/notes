@@ -266,6 +266,9 @@ def main():
     y_values = np.linspace(0, 10, 100)
     z_values = np.linspace(0, 10, 100)
     ax = plt.axes(projection="3d")
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
     ax.plot3D(x_values, y_values, z_values)
     plt.show()
 
