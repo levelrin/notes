@@ -275,3 +275,60 @@ def main():
 
 main()
 ```
+
+## Draw 3D Surface
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+def main():
+    ax = plt.axes(projection="3d")
+
+    # We must use numpy arrays because `ax.plot_surface` depends on it.
+    # Furthermore, we must use 2D arrays.
+    # In this case, we use 4 coordinates to draw a plane.
+    # In other words, (0, 0, 5), (5, 0, 5), (0, 5, 5), and (5, 5, 5) are used.
+    # You may wonder why we have to use 2D arrays.
+    # When it comes to drawing a surface in a 3D space, we can think of it as having a sheet of paper
+    # and bending it or just keeping it flat and placing it at some angle.
+    # To make a flat paper (grid), we need to duplicate x values by the number of y values.
+    # For example, we have x_values = [1, 2, 3].
+    # If we want to make a paper (grid) with height=2, we need to duplicate x_values 2 times.
+    # So, we use 2D arrays to represent grids, in which the number of outer arrays corresponds to the number of y_values,
+    # and the number of inner arrays corresponds to the number of x_values.
+    x_values = np.array([[0, 5], [0, 5]])
+    y_values = np.array([[0, 0], [5, 5]])
+    z_values = np.array([[5, 5], [5, 5]])
+    # `alpha` controls the opacity. Range: [0, 1].
+    ax.plot_surface(x_values, y_values, z_values, color="blue", alpha=0.5)
+
+    # The following is a more common approach to drawing a surface.
+    second_x_values = np.linspace(0, 5, 10)
+    second_z_values = np.linspace(2.5, 7.5, 10)
+    # As we know already, we have to use 2D arrays.
+    # `np.meshgrid` conveniently create 2D arrays in a grid pattern for two axis (x and z in this case).
+    # For example, we have x = [1, 2, 3, 4] and y = [5, 6, 7].
+    # To make a flat surface (grid), we need coordinates like below:
+    # ```
+    # (1, 7) (2, 7) (3, 7) (4, 7)
+    # (1, 6) (2, 6) (3, 6) (4, 6)
+    # (1, 5) (2, 5) (3, 5) (4, 5)
+    # ```
+    # That means we need x = [[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]]
+    # and y = [[7, 7, 7, 7], [6, 6, 6, 6], [5, 5, 5, 5]].
+    # So, `np.meshgrid` returns the first and second 2D arrays that we needed.
+    x_mesh, z_mesh = np.meshgrid(second_x_values, second_z_values)
+    # Since we want y values to be constant, we use `np.full_like` to make a 2D array with constant values.
+    second_y_values = np.full_like(x_mesh, 2.5)
+    ax.plot_surface(x_mesh, second_y_values, z_mesh, color="red", alpha=0.5)
+
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    plt.show()
+
+
+main()
+```
