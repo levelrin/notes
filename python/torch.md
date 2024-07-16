@@ -265,3 +265,112 @@ def main():
 
 main()
 ```
+
+## Visualize Optimization
+
+```python
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as func
+import torch.optim as optim
+
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
+
+class OurNet(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+
+        # Layers
+        self.hidden_layer = nn.Linear(1, 20)
+        self.output_layer = nn.Linear(20, 1)
+
+        # Configuration for Optimization
+        self.max_epoch = 500
+        self.loss_function = nn.MSELoss()
+        self.optimizer = optim.Adam(self.parameters(), lr=0.01)
+
+        # Configurations for Plotting
+        self.last_epoch = 0
+        # `regression_x_start`, `regression_x_end`, and `regression_x_steps` are parameters for `np.linspace`.
+        # It's for creating x values for the regression graph.
+        self.regression_x_start = 0
+        self.regression_x_end = 1
+        self.regression_x_steps = 11
+        self.fig, self.axs = plt.subplots(2, 1)
+        plt.subplots_adjust(hspace=0.5)
+        self.regression_plt = self.axs[0]
+        self.regression_plt.set_title("Regression")
+        # Store regression lines during the optimization.
+        # The purpose is to see how regression line changes over epoch.
+        self.regression_lines = []
+        # It's for drawing each regression line in the graph.
+        # We will use this on each animation update.
+        self.each_regression_line = self.regression_plt.plot([], [])[0]
+        # The purpose is to plot the loss curve.
+        self.losses = []
+        self.loss_plt = self.axs[1]
+        self.loss_plt.set_title("Loss")
+        self.loss_plt.set_xlabel("epochs")
+        self.loss_plt.set_ylabel("loss")
+        # It's for drawing the loss curve.
+        # We will use this on each animation update.
+        self.loss_line = self.loss_plt.plot([], [])[0]
+
+    def forward(self, i):
+        hidden_output = func.relu(self.hidden_layer(i))
+        return func.relu(self.output_layer(hidden_output))
+
+    def fit(self, train_inputs, train_labels):
+        self.regression_plt.scatter(train_inputs, train_labels, color="red", label="Actual")
+        for epoch in range(self.max_epoch):
+            self.last_epoch = epoch
+
+            # Create a regression line and store it.
+            regression_inputs = torch.linspace(start=0, end=1, steps=11).reshape(-1, 1)
+            regression_outputs = self.forward(regression_inputs)
+            self.regression_lines.append(regression_outputs.squeeze().detach())
+
+            outputs = self.forward(train_inputs)
+            loss = self.loss_function(outputs, train_labels)
+            self.losses.append(loss.detach())
+            if loss < 0.0001:
+                break
+            loss.backward()
+            self.optimizer.step()
+            self.optimizer.zero_grad()
+
+    def create_animation(self):
+        self.regression_plt.legend()
+        self.loss_plt.set_xlim(0, self.last_epoch + 1)
+        self.loss_plt.set_ylim(0, max(self.losses) + 0.05)
+
+        def update(frame):
+            self.loss_line.set_data(list(range(frame)), self.losses[:frame])
+            regression_inputs = np.linspace(self.regression_x_start, self.regression_x_end, self.regression_x_steps)
+            self.each_regression_line.set_data(regression_inputs, self.regression_lines[frame])
+            return [self.loss_line, self.each_regression_line]
+
+        return FuncAnimation(
+            fig=self.fig,
+            func=update,
+            frames=len(self.losses),
+            interval=50,
+            repeat=False
+        )
+
+
+def main():
+    train_inputs = torch.tensor([[0.], [0.5], [1.]])
+    train_labels = torch.tensor([[0.], [1.], [0.]])
+    model = OurNet()
+    model.fit(train_inputs, train_labels)
+    animation = model.create_animation()
+    plt.show()
+
+
+main()
+```
