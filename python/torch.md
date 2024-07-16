@@ -292,14 +292,16 @@ class OurNet(nn.Module):
         self.max_epoch = 500
         self.loss_function = nn.MSELoss()
         self.optimizer = optim.Adam(self.parameters(), lr=0.01)
+        # We will stop the optimization if the loss is less than this.
+        self.tolerable_loss = 0.0001
 
         # Configurations for Plotting
         self.last_epoch = 0
-        # `regression_x_start`, `regression_x_end`, and `regression_x_steps` are parameters for `np.linspace`.
+        # `regression_x_start`, `regression_x_stop`, and `regression_x_num` are parameters for `np.linspace`.
         # It's for creating x values for the regression graph.
         self.regression_x_start = 0
-        self.regression_x_end = 1
-        self.regression_x_steps = 11
+        self.regression_x_stop = 1
+        self.regression_x_num = 11
         self.fig, self.axs = plt.subplots(2, 1)
         plt.subplots_adjust(hspace=0.5)
         self.regression_plt = self.axs[0]
@@ -330,14 +332,18 @@ class OurNet(nn.Module):
             self.last_epoch = epoch
 
             # Create a regression line and store it.
-            regression_inputs = torch.linspace(start=0, end=1, steps=11).reshape(-1, 1)
+            regression_inputs = torch.linspace(
+                start=self.regression_x_start,
+                end=self.regression_x_stop,
+                steps=self.regression_x_num
+            ).reshape(-1, 1)
             regression_outputs = self.forward(regression_inputs)
             self.regression_lines.append(regression_outputs.squeeze().detach())
 
             outputs = self.forward(train_inputs)
             loss = self.loss_function(outputs, train_labels)
             self.losses.append(loss.detach())
-            if loss < 0.0001:
+            if loss < self.tolerable_loss:
                 break
             loss.backward()
             self.optimizer.step()
@@ -350,7 +356,8 @@ class OurNet(nn.Module):
 
         def update(frame):
             self.loss_line.set_data(list(range(frame)), self.losses[:frame])
-            regression_inputs = np.linspace(self.regression_x_start, self.regression_x_end, self.regression_x_steps)
+            np.linspace(1, 2, 3)
+            regression_inputs = np.linspace(self.regression_x_start, self.regression_x_stop, self.regression_x_num)
             self.each_regression_line.set_data(regression_inputs, self.regression_lines[frame])
             return [self.loss_line, self.each_regression_line]
 
