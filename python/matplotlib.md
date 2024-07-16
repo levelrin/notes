@@ -164,6 +164,8 @@ fig, axs = plt.subplots(2, 2)
 plt.subplots_adjust(hspace=0.4, wspace=0.4)
 
 # Top left plot.
+# `axs` is usually a 2D array except for the `plt.subplots(1, 2)` or `plt.subplots(2, 1)`.
+# In those cases, `axs` becomes 1D array, so we need to plot by `axs[0]` or `axs[1]`.
 axs[0, 0].plot(x, y)
 axs[0, 0].set_title('Axis [0, 0]')
 
