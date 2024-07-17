@@ -381,3 +381,23 @@ def main():
 
 main()
 ```
+
+## Check if GPU is used
+
+```python
+import torch
+
+if torch.cuda.is_available():
+    print("CUDA is available. PyTorch is using GPU.")
+else:
+    print("CUDA is not available. PyTorch is using CPU.")
+
+# If this prints an empty list, you probably installed the cpu-only PyTorch.
+# In that case, you need to uninstall the current torch and install the GPU-enabled one.
+# I used this command to install the correct one:
+# ```sh
+# pip install -f https://download.pytorch.org/whl/torch_stable.html torch
+# ```
+# By the way, I recommend using a virtual environment so you don't have to mess with the system packages.
+print(torch.cuda.get_arch_list())
+```
