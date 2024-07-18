@@ -401,3 +401,18 @@ else:
 # By the way, I recommend using a virtual environment so you don't have to mess with the system packages.
 print(torch.cuda.get_arch_list())
 ```
+
+## Seed Configuration
+
+```python
+import torch
+
+
+# Set the seed for CPU.
+# We can use any integer.
+torch.manual_seed(0)
+
+# Set the seed for all GPUs.
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(0)
+```
