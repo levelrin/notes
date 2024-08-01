@@ -22,6 +22,26 @@ ax.plot(x, y)
 plt.show()
 ```
 
+## Text
+
+```python
+import matplotlib.pyplot as plt
+
+
+def main():
+    x = [1, 2, 3, 4, 5]
+    y = [2, 3, 5, 7, 11]
+    plt.scatter(x, y)
+    # Write a text to the specified coordinate.
+    # `horizontalalignment=left` places the text on the right side of the dot.
+    # `verticalalignment=bottom` places the text on the top of the dot.
+    plt.text(3, 5, "Yoi", horizontalalignment="left", verticalalignment="bottom", weight="semibold")
+    plt.show()
+
+
+main()
+```
+
 ## Combination of Dots and Lines
 
 ```python
