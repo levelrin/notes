@@ -416,3 +416,25 @@ torch.manual_seed(0)
 if torch.cuda.is_available():
     torch.cuda.manual_seed_all(0)
 ```
+
+## Save and Load Parameters
+
+We can save the model's parameters like this:
+```python
+# This is the model that we made.
+model = OurNet()
+train_inputs = torch.tensor([[0.], [0.5], [1.]])
+train_labels = torch.tensor([[0.], [1.], [0.]])
+# Train the model.
+model.fit(train_inputs, train_labels)
+
+# It will serialize the model's parameters and save them to a file named `ournet_params.pth`.
+# `.pth` is a file extension that the PyTorch community often uses for this situation.
+# Apparently, `.pth` stands for `PyTorcH`.
+torch.save(model.state_dict(), "ournet_params.pth")
+```
+
+And we can load the model's parameters like this:
+```python
+model.load_state_dict(torch.load("ournet_params.pth"))
+```
