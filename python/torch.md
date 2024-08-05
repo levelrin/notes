@@ -438,3 +438,51 @@ And we can load the model's parameters like this:
 ```python
 model.load_state_dict(torch.load("ournet_params.pth"))
 ```
+
+## Embedding
+
+```python
+import torch
+from torch import nn
+
+# A map of tokens and their indexes.
+# We can use this to convert a word into a vector.
+token_to_index = {
+    "<EOS>": 0,
+    "roses": 1,
+    "apples": 2,
+    "red": 3,
+    "limes": 4,
+    "cucumbers": 5,
+    "green": 6,
+    "are": 7
+}
+
+# We can use this if we want to get the token using the index.
+index_to_token = {index: token for token, index in token_to_index.items()}
+print(f"index_to_token: {index_to_token}")
+
+# `num_embeddings` is the number of tokens.
+# `embedding_dim` is the number of dimensions of each token.
+# `Embedding` object is just a lookup table
+# in which each row represents each token,
+# and each column represents each number in the token's vector.
+embeds = nn.Embedding(num_embeddings=8, embedding_dim=2)
+
+# We can check all the vectors like this:
+print(embeds.weight)
+
+# This is how we can get a vector of the first token.
+first_token_vector = embeds(torch.LongTensor([0]))
+print(f"The vector for the first token: {first_token_vector}")
+
+# Create a lookup tensor for roses.
+# We can use it as a key (index) for `embeds`.
+lookup_roses = torch.tensor([token_to_index["roses"]], dtype=torch.long)
+roses_vector = embeds(lookup_roses)
+print(f"The vector for the roses: {roses_vector}")
+
+# We can get a tensor with three vectors like this:
+first_three_vectors = embeds(torch.LongTensor([0, 1, 2]))
+print(f"The first three vectors: {first_three_vectors}")
+```
