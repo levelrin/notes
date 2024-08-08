@@ -486,3 +486,52 @@ print(f"The vector for the roses: {roses_vector}")
 first_three_vectors = embeds(torch.LongTensor([0, 1, 2]))
 print(f"The first three vectors: {first_three_vectors}")
 ```
+
+## Transformer
+
+The official document about `nn.Transformer.forward(src, tgt)` says:
+> src: (S, E) for unbatched input, (S, N, E) if batch_first=False or (N, S, E) if batch_first=True.
+> 
+> tgt: (T, E) for unbatched input, (T, N, E) if batch_first=False or (N, T, E) if batch_first=True.
+>
+> output: (T, E) for unbatched input, (T, N, E) if batch_first=False or (N, T, E) if batch_first=True.
+
+`S` means the sequence length of the source input. In NLP, it's the number of words (tokens) in each sentence.
+
+`T` is the same as `S`, except it's for the target input.
+
+`E` means the embedding dimension. In NLP, it's the vector dimension of each word (token).
+
+`N` means the batch size. In NLP, it's the number of sentences.
+
+For example, `batch_first=True`, `S=3`, `E=2`, `N=5`, and `T=4`.
+
+In that case, the `src` and `tgt` would look like the following:
+```python
+src = torch.tensor([
+    [[1, 2], [3, 4], [5, 6]],  # Sequence 1
+    [[7, 8], [9, 10], [11, 12]],  # Sequence 2
+    [[13, 14], [15, 16], [17, 18]],  # Sequence 3
+    [[19, 20], [21, 22], [23, 24]],  # Sequence 4
+    [[25, 26], [27, 28], [29, 30]]   # Sequence 5
+], dtype=torch.float32)
+
+tgt = torch.tensor([
+    [[31, 32], [33, 34], [35, 36], [37, 38]],  # Sequence 1
+    [[39, 40], [41, 42], [43, 44], [45, 46]],  # Sequence 2
+    [[47, 48], [49, 50], [51, 52], [53, 54]],  # Sequence 3
+    [[55, 56], [57, 58], [59, 60], [61, 62]],  # Sequence 4
+    [[63, 64], [65, 66], [67, 68], [69, 70]]   # Sequence 5
+], dtype=torch.float32)
+```
+
+Since the `output` has the same shape as the `tgt`, the output of the above input would look like the following:
+```
+tensor([
+    [[1.0000, -1.0000], [1.0000, -1.0000], [1.0000, -1.0000], [1.0000, -1.0000]],
+    [[1.0000, -1.0000], [1.0000, -1.0000], [1.0000, -1.0000], [1.0000, -1.0000]],
+    [[1.0000, -1.0000], [1.0000, -1.0000], [1.0000, -1.0000], [1.0000, -1.0000]],
+    [[1.0000, -1.0000], [1.0000, -1.0000], [-1.0000, 1.0000], [-1.0000, 1.0000]],
+    [[1.0000, -1.0000], [1.0000, -1.0000], [1.0000, -1.0000], [1.0000, -1.0000]]
+], grad_fn=<NativeLayerNormBackward0>)
+```
