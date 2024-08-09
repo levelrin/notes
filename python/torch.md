@@ -84,6 +84,68 @@ dim=-1: tensor([[0],
 dim=-2: tensor([[0, 1, 2, 3]])
 ```
 
+### Tensor.squeeze
+
+```python
+import torch
+
+# Shape is (1, 2, 2, 1, 3).
+original = torch.LongTensor([
+    [
+        [
+            [
+                [0, 1, 2]
+            ],
+            [
+                [3, 4, 5]
+            ]
+        ],
+        [
+            [
+                [6, 7, 8]
+            ],
+            [
+                [9, 10, 11]
+            ]
+        ],
+    ]
+])
+print(f"original: {original}")
+print(f"original's shape: {original.shape}")
+
+# The squeeze method is used to reduce the dimension of a tensor.
+# Calling squeeze method without `dim` parameter removes all dimensions of shape=1.
+# In this case, the shape will be: (1, 2, 2, 1, 3) -> (2, 2, 3).
+simple_squeeze = original.squeeze()
+print(f"simple_squeeze: {simple_squeeze}")
+print(f"simple_squeeze's shape: {simple_squeeze.shape}")
+
+# Specifying `dim` would remove the dimension at that specific index if its shape=1.
+# In this case, the shape will be: (1, 2, 2, 1, 3) -> (1, 2, 2, 3).
+dim3 = original.squeeze(dim=3)
+print(f"dim=3: {dim3}")
+print(f"dim=3 shape: {dim3.shape}")
+
+# The shape of the dim (index) = 4 is 3.
+# Since the shape at dim=4 is not 1, it will not reduce that dimension.
+# In this case, the shape will be: (1, 2, 2, 1, 3) -> (1, 2, 2, 1, 3).
+dim4 = original.squeeze(dim=4)
+print(f"dim=4: {dim4}")
+print(f"dim=4 shape: {dim4.shape}")
+```
+
+Output of the above code (formatted):
+```
+original: tensor([[[[[0, 1, 2]], [[3, 4, 5]]], [[[6, 7, 8]], [[9, 10, 11]]]]])
+original's shape: torch.Size([1, 2, 2, 1, 3])
+simple_squeeze: tensor([[[0, 1, 2], [3, 4, 5]], [[6, 7, 8], [9, 10, 11]]])
+simple_squeeze's shape: torch.Size([2, 2, 3])
+dim=3: tensor([[[[0, 1, 2], [3, 4, 5]], [[6, 7, 8], [9, 10, 11]]]])
+dim=3 shape: torch.Size([1, 2, 2, 3])
+dim=4: tensor([[[[[0, 1, 2]], [[3, 4, 5]]], [[[6, 7, 8]], [[9, 10, 11]]]]])
+dim=4 shape: torch.Size([1, 2, 2, 1, 3])
+```
+
 ## Neural Networks with Raw Parameters
 
 ```python
