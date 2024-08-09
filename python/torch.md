@@ -1,3 +1,89 @@
+## Tensor
+
+```python
+import torch
+
+tensor1 = torch.LongTensor([0, 1, 2, 3])
+tensor2 = torch.tensor([0, 1, 2, 3], dtype=torch.long)
+tensor3 = torch.FloatTensor([0, 1, 2, 3])
+tensor4 = torch.tensor([0, 1, 2, 3], dtype=torch.float32)
+print(f"tensor1: {tensor1}")
+print(f"tensor2: {tensor2}")
+print(f"tensor3: {tensor3}")
+print(f"tensor3 type: {type(tensor3)}")
+print(f"tensor3 dtype: {tensor3.dtype}")
+print(f"dtype comparison between tensor1 and tensor2: {tensor1.dtype == tensor2.dtype}")
+print(f"dtype comparison between tensor1 and tensor3: {tensor1.dtype == tensor3.dtype}")
+print(f"dtype comparison between tensor3 and tensor4: {type(tensor3) == type(tensor4)}")
+print(f"type comparison between tensor1 and tensor3: {type(tensor1) == type(tensor3)}")
+```
+
+Output of the above code:
+```
+tensor1: tensor([0, 1, 2, 3])
+tensor2: tensor([0, 1, 2, 3])
+tensor3: tensor([0., 1., 2., 3.])
+tensor3 type: <class 'torch.Tensor'>
+tensor3 dtype: torch.float32
+dtype comparison between tensor1 and tensor2: True
+dtype comparison between tensor1 and tensor3: False
+dtype comparison between tensor3 and tensor4: True
+type comparison between tensor1 and tensor3: True
+```
+
+### Tensor.unsqueeze
+
+```python
+import torch
+
+# We can say that the shape of this tensor is (4).
+# In other words, it's a 1D tensor with 4 elements inside.
+# The Tensor.unsqueeze(n) increases the dimension by 1.
+# In this case, Tensor.unsqueeze(n) will make this a 2D tensor.
+# The parameter `n` represents the index of the shape.
+original = torch.LongTensor([0, 1, 2, 3])
+print(f"original: {original}")
+
+# It means adding one dimension at index=0 of the shape.
+# In this case, the shape will be: (4) -> (1, 4).
+# The shape (1, 4) means 1 element outside and 4 elements inside.
+dim0 = original.unsqueeze(0)
+print(f"dim=0: {dim0}")
+
+# It means adding one dimension at index=1 of the shape.
+# In this case, the shape will be: (4) -> (4, 1).
+# The shape (4, 1) means 4 elements outside and 1 element inside.
+dim1 = original.unsqueeze(1)
+print(f"dim=1: {dim1}")
+
+# A negative `n` means we count the index from the end (opposite direction).
+# In this case, the shape will be: (4) -> (4, 1).
+dim_1 = original.unsqueeze(-1)
+print(f"dim=-1: {dim_1}")
+
+# In this case, the shape will be: (4) -> (1, 4).
+dim_2 = original.unsqueeze(-2)
+print(f"dim=-2: {dim_2}")
+
+# So, the range of dim (n) would be [-2, 1] in this case.
+# Other values will result in an error (dimension out of range).
+```
+
+Output of the above code:
+```
+original: tensor([0, 1, 2, 3])
+dim=0: tensor([[0, 1, 2, 3]])
+dim=1: tensor([[0],
+        [1],
+        [2],
+        [3]])
+dim=-1: tensor([[0],
+        [1],
+        [2],
+        [3]])
+dim=-2: tensor([[0, 1, 2, 3]])
+```
+
 ## Neural Networks with Raw Parameters
 
 ```python
