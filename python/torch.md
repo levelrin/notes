@@ -182,6 +182,49 @@ tensor4: tensor([[ 0,  1,  2,  6,  7,  8],
         [ 3,  4,  5,  9, 10, 11]])
 ```
 
+## CrossEntropyLoss
+
+```python
+import numpy as np
+import torch
+from torch import nn
+
+# This function is useful for classification problems.
+loss_function = nn.CrossEntropyLoss()
+# We must use raw scores (logits) instead of the probability distribution.
+# In other words, we don't have to apply softmax.
+# In this case, there are 3 classes.
+# Note that it's 2D because the cross-entropy function expects batch input.
+raw_prediction1 = torch.FloatTensor([[2, 0, -1]])
+# The target input must be the index of the class.
+# In this case, the third class was the correct answer.
+# Note that it's 1D, unlike above input.
+actual_class1 = torch.LongTensor([2])
+loss1 = loss_function(raw_prediction1, actual_class1)
+print(f"loss1: {loss1}")
+
+# This example shows the loss gets lower if the prediction is correct.
+raw_prediction2 = torch.FloatTensor([[2, 0, -1]])
+actual_class2 = torch.LongTensor([0])
+loss2 = loss_function(raw_prediction2, actual_class2)
+print(f"loss2: {loss2}")
+
+# This example shows a case of batch input.
+raw_prediction3 = torch.FloatTensor([[2, 0, -1], [2, 0, -1]])
+# Note that it's still 1D.
+actual_class3 = torch.LongTensor([2, 0])
+# Since there are two losses (2 batches), the average loss value will be returned.
+loss3 = loss_function(raw_prediction3, actual_class3)
+print(f"loss3: {loss3}, average of loss1 and loss2: {np.mean([loss1, loss2])}")
+```
+
+Output of the above code:
+```
+loss1: 3.1698460578918457
+loss2: 0.1698460429906845
+loss3: 1.6698460578918457, average of loss1 and loss2: 1.6698460578918457
+```
+
 ## Neural Networks with Raw Parameters
 
 ```python
