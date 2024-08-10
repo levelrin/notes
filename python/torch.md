@@ -146,6 +146,42 @@ dim=4: tensor([[[[[0, 1, 2]], [[3, 4, 5]]], [[[6, 7, 8]], [[9, 10, 11]]]]])
 dim=4 shape: torch.Size([1, 2, 2, 1, 3])
 ```
 
+### torch.cat
+
+```python
+import torch
+
+# Shape: (2, 3)
+tensor1 = torch.LongTensor([[0, 1, 2], [3, 4, 5]])
+# Shape: (2, 3)
+tensor2 = torch.LongTensor([[6, 7, 8], [9, 10, 11]])
+# The `dim` corresponds to the index that we use for the addition.
+# Shape: (2, ignored) + (2, ignored) = (4, 3)
+tensor3 = torch.cat((tensor1, tensor2), dim=0)
+# Shape: (ignored, 3) + (ignored, 3) = (2, 6)
+tensor4 = torch.cat((tensor1, tensor2), dim=1)
+print(f"tensor1's shape: {tensor1.shape}")
+print(f"tensor2's shape: {tensor2.shape}")
+print(f"tensor3's shape: {tensor3.shape}")
+print(f"tensor3: {tensor3}")
+print(f"tensor4's shape: {tensor4.shape}")
+print(f"tensor4: {tensor4}")
+```
+
+Output of the above code:
+```
+tensor1's shape: torch.Size([2, 3])
+tensor2's shape: torch.Size([2, 3])
+tensor3's shape: torch.Size([4, 3])
+tensor3: tensor([[ 0,  1,  2],
+        [ 3,  4,  5],
+        [ 6,  7,  8],
+        [ 9, 10, 11]])
+tensor4's shape: torch.Size([2, 6])
+tensor4: tensor([[ 0,  1,  2,  6,  7,  8],
+        [ 3,  4,  5,  9, 10, 11]])
+```
+
 ## Neural Networks with Raw Parameters
 
 ```python
