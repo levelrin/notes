@@ -493,6 +493,35 @@ def main():
 main()
 ```
 
+## Argmax
+
+```python
+import torch
+from torch import nn
+
+model = nn.Linear(3, 6)
+input_tensor = torch.FloatTensor([[3, 6, 9]])
+output = model(input_tensor)
+print(f"output: {output}")
+# The argmax will return the index of the maximum value.
+# The input will be flattened. That's why it makes sense that we put 2D input.
+max_index = torch.argmax(output)
+print(f"max_index: {max_index}")
+print(f"max_index type: {type(max_index)}")
+print(f"max_index.item(): {max_index.item()}")
+print(f"max_index.item() type: {type(max_index.item())}")
+```
+
+This was the output of the above code:
+```
+output: tensor([[ 0.8717,  1.8732, -0.9439, -3.9290,  0.4696, -1.9440]],
+       grad_fn=<AddmmBackward0>)
+max_index: 1
+max_index type: <class 'torch.Tensor'>
+max_index.item(): 1
+max_index.item() type: <class 'int'>
+```
+
 ## Visualize Optimization
 
 ```python
