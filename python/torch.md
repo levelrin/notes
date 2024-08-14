@@ -225,6 +225,49 @@ loss2: 0.1698460429906845
 loss3: 1.6698460578918457, average of loss1 and loss2: 1.6698460578918457
 ```
 
+## MultiLabelSoftMarginLoss
+
+```python
+import numpy as np
+import torch
+from torch import nn
+
+# This function is useful for multi-label classification tasks.
+loss_function = nn.MultiLabelSoftMarginLoss()
+
+# We must use raw scores (logits) instead of the probability distribution.
+# In other words, we don't have to apply softmax.
+# In this case, there are 3 classes.
+# Note that it's 2D because it expects batch input.
+raw_prediction1 = torch.FloatTensor([[2, 0, -1]])
+# The target input must have the same shape as the raw prediction.
+# We use one-hot encoded tensor to denote the correct labels.
+# In this case, the first and the third labels are correct.
+actual_classes1 = torch.LongTensor([[1, 0, 1]])
+loss1 = loss_function(raw_prediction1, actual_classes1)
+print(f"loss1: {loss1}")
+
+# This example shows the loss gets lower if the prediction is more correct.
+raw_prediction2 = torch.FloatTensor([[2, -1, 1.5]])
+actual_classes2 = torch.LongTensor([[1, 0, 1]])
+loss2 = loss_function(raw_prediction2, actual_classes2)
+print(f"loss2: {loss2}")
+
+# This example shows a case of batch input.
+raw_prediction3 = torch.FloatTensor([[2, 0, -1], [2, -1, 1.5]])
+actual_classes3 = torch.LongTensor([[1, 0, 1], [1, 0, 1]])
+# Since there are two losses (2 batches), the average loss value will be returned.
+loss3 = loss_function(raw_prediction3, actual_classes3)
+print(f"loss3: {loss3}, average of loss1 and loss2: {np.mean([loss1, loss2])}")
+```
+
+Output of the above code:
+```
+loss1: 0.7111123204231262
+loss2: 0.2138676643371582
+loss3: 0.4624899923801422, average of loss1 and loss2: 0.4624899923801422
+```
+
 ## Neural Networks with Raw Parameters
 
 ```python
