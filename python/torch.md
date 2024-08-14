@@ -806,6 +806,211 @@ first_three_vectors = embeds(torch.LongTensor([0, 1, 2]))
 print(f"The first three vectors: {first_three_vectors}")
 ```
 
+### CBOW and Skip-Gram
+
+```python
+import matplotlib.pyplot as plt
+import torch
+import torch.nn as nn
+from torch import optim
+
+torch.manual_seed(3)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(0)
+
+class OurEmbedding(nn.Module):
+
+    def __init__(self, token_to_index):
+        super().__init__()
+        self.token_to_index = token_to_index
+        self.index_to_token = {index: token for token, index in token_to_index.items()}
+        self.vocab_size = len(token_to_index)
+        token_vec_dim = 2
+        self.embeds = nn.Embedding(self.vocab_size, token_vec_dim)
+        # Fully connected layer (fc) for CBOW.
+        self.fc_cbow = nn.Sequential(
+            # FC: input layer -> hidden layer.
+            nn.Linear(token_vec_dim * 2, token_vec_dim),
+            nn.ReLU(),
+            # FC: hidden layer -> output layer.
+            nn.Linear(token_vec_dim, self.vocab_size),
+            nn.ReLU()
+        )
+        # Fully connected layer for skip-gram.
+        self.fc_skip_gram = nn.Sequential(
+            nn.Linear(token_vec_dim, token_vec_dim),
+            nn.ReLU(),
+            nn.Linear(token_vec_dim, self.vocab_size),
+            nn.ReLU()
+        )
+
+    def fit_with_cbow(self, sequences):
+        """
+        Use the continuous bag of words (CBOW) to train the embedding.
+        It's about predicting the word in the middle.
+        The window size is fixed to 2 for now.
+        Ex: Given "roses are red", input: ["roses", "red"], output: "are".
+        :param sequences: A simple list of sequences.
+                          EX: [["roses", "are", "red"], ["limes", "are", "green"]]
+        """
+        loss_function = nn.CrossEntropyLoss()
+        optimizer = optim.Adam(list(self.embeds.parameters()) + list(self.fc_cbow.parameters()), lr=0.01)
+        for epoch in range(100):
+            optimizer.zero_grad()
+            total_loss = 0
+            for sequence in sequences:
+                seq_length = len(sequence)
+                # Sequence too short.
+                if seq_length < 3:
+                    break
+                for token_index in range(seq_length - 2):
+                    token_left = sequence[token_index]
+                    token_middle = sequence[token_index + 1]
+                    token_right = sequence[token_index + 2]
+                    token_left_vec = self.token_to_vec(token_left)
+                    token_right_vec = self.token_to_vec(token_right)
+                    # Input size: (1, token_vec_dim * 2)
+                    fc_input = torch.cat((token_left_vec, token_right_vec), dim=1)
+                    fc_output = self.fc_cbow(fc_input)
+                    correct_token_index = self.token_to_index[token_middle]
+                    loss = loss_function(fc_output, torch.LongTensor([correct_token_index]))
+                    loss.backward()
+                    total_loss += float(loss)
+
+                    # Just for checking how's the prediction is going.
+                    predicted_token_index = torch.argmax(fc_output).item()
+                    predicted_token = self.index_to_token[predicted_token_index]
+                    print(f"Prediction: {token_left} ({predicted_token}) {token_right}, Actual: {token_left} ({token_middle}) {token_right}")
+            print(f"epoch: {epoch}, total_loss: {total_loss}\n")
+            if total_loss < 0.0001:
+                break
+            optimizer.step()
+
+    def fit_with_skip_gram(self, sequences):
+        """
+        Use the skip-gram to train the embedding.
+        It's about predicting the surrounding words.
+        The window size is fixed to 2 for now.
+        Ex: Given "roses are red", input: "are", output: ["roses", "red"].
+        :param sequences: Same as `fit_with_cbow`.
+        """
+        loss_function = nn.MultiLabelSoftMarginLoss()
+        optimizer = optim.Adam(list(self.embeds.parameters()) + list(self.fc_skip_gram.parameters()), lr=0.01)
+        for epoch in range(100):
+            optimizer.zero_grad()
+            total_loss = 0
+            for sequence in sequences:
+                seq_length = len(sequence)
+                # Sequence too short.
+                if seq_length < 3:
+                    break
+                for token_index in range(seq_length - 2):
+                    token_left = sequence[token_index]
+                    token_middle = sequence[token_index + 1]
+                    token_right = sequence[token_index + 2]
+                    token_middle_vec = self.token_to_vec(token_middle)
+                    fc_output = self.fc_skip_gram(token_middle_vec)
+                    token_left_index = self.token_to_index[token_left]
+                    token_right_index = self.token_to_index[token_right]
+                    # Initialize all-zero list and replace the value to 1 for correct indexes.
+                    raw_correct_labels = [0] * self.vocab_size
+                    raw_correct_labels[token_left_index] = 1
+                    raw_correct_labels[token_right_index] = 1
+                    correct_labels = torch.LongTensor([raw_correct_labels])
+                    loss = loss_function(fc_output, correct_labels)
+                    loss.backward()
+                    total_loss += float(loss)
+
+                    # Just for checking how's the prediction is going.
+                    _, predicted_token_indexes = torch.topk(fc_output, 2)
+                    predicted_token_index_left = predicted_token_indexes[0][0].item()
+                    predicted_token_index_right = predicted_token_indexes[0][1].item()
+                    predicted_token_left = self.index_to_token[predicted_token_index_left]
+                    predicted_token_right = self.index_to_token[predicted_token_index_right]
+                    print(f"Prediction: ({predicted_token_left}) {token_middle} ({predicted_token_right}), Actual: ({token_left}) {token_middle} ({token_right})")
+            print(f"epoch: {epoch}, total_loss: {total_loss}\n")
+            if total_loss < 0.0001:
+                break
+            optimizer.step()
+
+    def token_to_vec(self, token):
+        """
+        Convert the token to vector.
+        :param token: Ex: "roses"
+        :return: Vector. Ex: tensor([[ 0.0299, -0.0498]], grad_fn=<EmbeddingBackward0>)
+        """
+        token_index = self.token_to_index[token]
+        return self.embeds(torch.LongTensor([token_index]))
+
+    def vec_to_token(self, vec):
+        """
+        Convert the vector to token.
+        :param vec: Ex: tensor([[ 0.0299, -0.0498]], grad_fn=<EmbeddingBackward0>)
+        :return: Token. Ex: "roses"
+        """
+        all_vecs = self.embeds.weight
+        for each_vec in all_vecs:
+            if torch.all(torch.eq(each_vec, vec)):
+                return each_vec
+        raise ValueError(f"Could not find the vector in the embedding. vector: {vec}, embedding: {all_vecs}")
+
+def scatter(token_to_index, our_embedding, ax):
+    """
+    Visualize the token vectors.
+    Assuming vector dimension is 2.
+    :param token_to_index: As is.
+    :param our_embedding: As is.
+    :param ax: ax associated with the figure.
+    """
+    for token, index in token_to_index.items():
+        # Squeeze to change the shape: (1, 2) -> (2)
+        vec = our_embedding.token_to_vec(token).squeeze()
+        x = vec[0].item()
+        y = vec[1].item()
+        ax.scatter(x, y)
+        ax.text(x, y, token, horizontalalignment="left", verticalalignment="bottom", weight="semibold")
+
+def main():
+    # For visualizing the effect of the training.
+    figs, axes = plt.subplots(1, 2)
+    plt.subplots_adjust(wspace=0.5)
+    ax_before = axes[0]
+    ax_before.set_title("Before Training")
+    ax_after = axes[1]
+    ax_after.set_title("After Training")
+
+    token_to_index = {
+        # sos stands for start of sequence.
+        "<sos>": 0,
+        # eos stands for end of sequence.
+        "<eos>": 1,
+        "roses": 2,
+        "apples": 3,
+        "limes": 4,
+        "cucumbers": 5,
+        "are": 6,
+        "red": 7,
+        "green": 8
+    }
+    our_embedding = OurEmbedding(token_to_index)
+    # Visualize the embedding before training.
+    scatter(token_to_index, our_embedding, ax_before)
+    training_sequences = [
+        ["<sos>", "roses", "are", "red", "<eos>"],
+        ["<sos>", "apples", "are", "red", "<eos>"],
+        ["<sos>", "limes", "are", "green", "<eos>"],
+        ["<sos>", "cucumbers", "are", "green", "<eos>"]
+    ]
+    #our_embedding.fit_with_cbow(training_sequences)
+    our_embedding.fit_with_skip_gram(training_sequences)
+
+    # Visualize the embedding after training.
+    scatter(token_to_index, our_embedding, ax_after)
+    plt.show()
+
+main()
+```
+
 ## Transformer
 
 The official document about `nn.Transformer.forward(src, tgt)` says:
