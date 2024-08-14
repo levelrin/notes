@@ -182,6 +182,26 @@ tensor4: tensor([[ 0,  1,  2,  6,  7,  8],
         [ 3,  4,  5,  9, 10, 11]])
 ```
 
+### torch.topk
+
+```python
+import torch
+
+tensor1 = torch.FloatTensor([[8, 0, 1, 2, 3, 4, 5, 6, 7]])
+top_values1, top_indexes1 = torch.topk(tensor1, 2)
+print(f"top_values1: {top_values1}, top_indexes1: {top_indexes1}")
+
+tensor2 = torch.FloatTensor([[8, 8, 8, 8, 3, 4, 5, 6, 7]])
+top_values2, top_indexes2 = torch.topk(tensor2, 2)
+print(f"top_values2: {top_values2}, top_indexes2: {top_indexes2}")
+```
+
+Output of the above code:
+```
+top_values1: tensor([[8., 7.]]), top_indexes1: tensor([[0, 8]])
+top_values2: tensor([[8., 8.]]), top_indexes2: tensor([[0, 1]])
+```
+
 ## CrossEntropyLoss
 
 ```python
