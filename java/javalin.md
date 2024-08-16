@@ -265,3 +265,41 @@ public class Main {
 
 }
 ```
+
+## Handle HTTP requests globally
+
+```java
+package com.levelrin;
+
+import io.javalin.Javalin;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class Main {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
+
+    public static void main(final String... args) {
+
+        Javalin.create()
+            .before(context -> {
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info("Received a request. IP: {}", context.ip());
+                }
+            })
+            .get("/hello", context -> {
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info("Say hello to IP: {}", context.ip());
+                }
+                context.result("Hello World");
+            })
+            .after(context -> {
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info("Request handled. IP: {}", context.ip());
+                }
+            })
+            .start(7070);
+    }
+
+}
+```
