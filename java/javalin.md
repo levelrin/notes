@@ -53,3 +53,34 @@ public class Main {
 
 }
 ```
+
+## Static Files
+
+`resources/static/index.html`:
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+Yoi Yoi
+</body>
+</html>
+```
+
+Main class:
+```java
+package com.levelrin;
+
+import io.javalin.Javalin;
+
+public class Main {
+
+    public static void main(final String... args) {
+        Javalin.create(config -> config.staticFiles.add("/static")).start(7070);
+    }
+
+}
+```
