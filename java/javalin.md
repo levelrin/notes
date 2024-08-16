@@ -209,3 +209,59 @@ public class Main {
 
 }
 ```
+
+## Deal with JSON
+
+```java
+package com.levelrin;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.javalin.Javalin;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+
+    public static void main(final String... args) {
+        final ObjectMapper jackson = new ObjectMapper();
+        Javalin.create()
+            .post("/register-item", context -> {
+                // It checks if the header "Content-Type: application/json" is used.
+                // It does not check the actual data, though.
+                if (context.isJson()) {
+                    //  Let's say the request body looks like this:
+                    // {"username": "test01", "items": ["apple", "banana", "orange"]}
+                    final String rawRequestBody = context.body();
+
+                    // Parse JSON.
+                    final JsonNode jsonRequestBody = jackson.readTree(rawRequestBody);
+                    final String username = jsonRequestBody.get("username").asText();
+                    final List<String> items = new ArrayList<>();
+                    jsonRequestBody.get("items").forEach(item -> items.add(item.asText()));
+
+                    // Build JSON object.
+                    // We will build a response body like this:
+                    // {"username": "test01", "items": ["apple", "banana", "orange"]}
+                    final ObjectNode jsonResponse = jackson.createObjectNode()
+                        .put("username", username);
+                    final ArrayNode array = jackson.createArrayNode();
+                    array.add("apple");
+                    array.add("banana");
+                    array.add("orange");
+                    jsonResponse.set("items", array);
+
+                    // By the way, we can stringify a JSON object like this:
+                    //final String rawResponseBody = jackson.writeValueAsString(jsonResponse);
+
+                    // Set the response body.
+                    context.json(jsonResponse);
+                }
+            })
+            .start(7070);
+    }
+
+}
+```
