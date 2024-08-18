@@ -303,3 +303,261 @@ public class Main {
 
 }
 ```
+
+## Sample chat app using WebSocket
+
+`Main.java`:
+```java
+package com.levelrin;
+
+import io.javalin.Javalin;
+import io.javalin.http.HttpStatus;
+import io.javalin.websocket.WsCloseStatus;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public final class Main {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
+
+    public static void main(final String... args) {
+        final WsConnections wsConnections = new WsConnections();
+        Javalin.create(config -> config.staticFiles.add("/static"))
+            .post("/login", context -> {
+                final String username = context.formParam("username");
+                if (username == null) {
+                    context.status(HttpStatus.UNAUTHORIZED);
+                    context.result("Login Failed.");
+                    return;
+                }
+                context.cookie("username", username);
+                context.redirect("/home.html", HttpStatus.MOVED_PERMANENTLY);
+            })
+            .ws("/connect", ws -> {
+                ws.onConnect(context -> {
+                    context.session.setIdleTimeout(Duration.ofDays(1));
+                    final String encodedUsername = context.queryParam("username");
+                    if (encodedUsername == null) {
+                        context.closeSession(400, "Please login first.");
+                        return;
+                    }
+                    final String username = URLDecoder.decode(encodedUsername, StandardCharsets.UTF_8);
+                    wsConnections.add(context, username);
+                    wsConnections.broadcast(String.format("%s has joined the chat.", username));
+                });
+                ws.onMessage(context -> {
+                    final String sessionId = context.sessionId();
+                    final String username = wsConnections.username(sessionId);
+                    final String message = context.message();
+                    wsConnections.broadcast(String.format("%s: %s", username, message));
+                });
+                ws.onClose(context -> {
+                    final String sessionId = context.sessionId();
+                    final String username = wsConnections.username(sessionId);
+                    wsConnections.remove(sessionId);
+                    wsConnections.broadcast(String.format("%s has left the chat.", username));
+                });
+                ws.onError(context -> {
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error("Unexpected error occurred from the WebSocket.", context.error());
+                    }
+                    final String sessionId = context.sessionId();
+                    final String username = wsConnections.username(sessionId);
+                    context.closeSession(
+                        WsCloseStatus.SERVER_ERROR,
+                        "Unexpected error occurred from the WebSocket. Please check the server log."
+                    );
+                    wsConnections.remove(sessionId);
+                    wsConnections.broadcast(String.format("%s has left the chat.", username));
+                });
+            })
+            .start(7070);
+    }
+
+}
+```
+
+`WsConnections.java`:
+```java
+package com.levelrin;
+
+import io.javalin.websocket.WsConnectContext;
+import io.javalin.websocket.WsContext;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Collection of WebSocket connections.
+ * It's thread-safe.
+ */
+public final class WsConnections {
+
+    /**
+     * Key: Session ID.
+     * Value: Username.
+     */
+    private final Map<String, String> sessionIdToUsername = new HashMap<>();
+
+    /**
+     * Key: Username.
+     * Value: WsContext object.
+     */
+    private final Map<String, WsContext> usernameToContext = new HashMap<>();
+
+    /**
+     * Add a new WebSocket connection.
+     * @param context As is.
+     * @param username As is.
+     */
+    public synchronized void add(final WsConnectContext context, final String username) {
+        this.sessionIdToUsername.put(context.sessionId(), username);
+        this.usernameToContext.put(username, context);
+    }
+
+    /**
+     * Remove the WebSocket connection.
+     * @param sessionId As is.
+     */
+    public synchronized void remove(final String sessionId) {
+        if (!sessionIdToUsername.containsKey(sessionId)) {
+            return;
+        }
+        final String username = this.sessionIdToUsername.get(sessionId);
+        this.sessionIdToUsername.remove(sessionId);
+        this.usernameToContext.remove(username);
+    }
+
+    /**
+     * Find the username using the session ID.
+     * @param sessionId As is.
+     * @return As is.
+     */
+    public synchronized String username(final String sessionId) {
+        return this.sessionIdToUsername.get(sessionId);
+    }
+
+    /**
+     * Broadcast the message to all WebSocket connections.
+     * @param message As is.
+     */
+    public synchronized void broadcast(final String message) {
+        for (final Map.Entry<String, WsContext> entry: usernameToContext.entrySet()) {
+            entry.getValue().send(message);
+        }
+    }
+
+}
+```
+
+`resources/static/index.html`:
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+</head>
+<body>
+
+<form action="/login" method="POST">
+    <label for="username">Username</label>
+    <input type="text" id="username" name="username" aria-describedby="username" required>
+    <button type="submit">Submit</button>
+</form>
+
+</body>
+</html>
+```
+
+`resources/static/home.html`:
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Home</title>
+</head>
+<body>
+Hello, <span id="username-label"></span>!
+<label for="message">Message</label>
+<input type="text" id="message" name="message" aria-describedby="message">
+<button type="button" onclick="sendMessage()">Send</button>
+<script src="script.js"></script>
+</body>
+</html>
+```
+
+`resources/static/script.js`:
+```js
+window.onload = function() {
+    if (hasCookie("username")) {
+        const username = cookie("username");
+        document.getElementById("username-label").innerText = username;
+        const ws = new WebSocket("ws://" + location.host + "/connect?username=" + encodeURIComponent(username));
+        ws.addEventListener('open', () => {
+            console.log("WebSocket Connected!");
+            sendMessage = function() {
+                const input = document.getElementById("message");
+                const message = input.value;
+                ws.send(message);
+                input.value = "";
+            }
+        });
+
+        ws.addEventListener('message', event => {
+            console.log(event.data);
+        });
+
+        ws.addEventListener('close', event => {
+            console.log("WebSocket Disconnected.");
+        });
+
+        ws.addEventListener('error', event => {
+            console.error("WebSocket Error Occurred.", event);
+        });
+    } else {
+        alert("Please login first.");
+        window.location.pathname = "/index.html";
+    }
+}
+
+let sendMessage = function() {
+    alert("Please login first.");
+    window.location.pathname = "/index.html";
+}
+
+/**
+ * Get the cookie value.
+ * @param name Key.
+ * @returns {string}
+ */
+function cookie(name) {
+    let cookieArr = document.cookie.split(";");
+    for(let i = 0; i < cookieArr.length; i++) {
+        let cookiePair = cookieArr[i].split("=");
+        if(name === cookiePair[0].trim()) {
+            return decodeURIComponent(cookiePair[1]);
+        }
+    }
+    alert("Could not find the cookie name: " + name);
+}
+
+/**
+ * Check if the cookie exists.
+ * @param name Key.
+ * @return {boolean}
+ */
+function hasCookie(name) {
+    let cookieArr = document.cookie.split(";");
+    for(let i = 0; i < cookieArr.length; i++) {
+        let cookiePair = cookieArr[i].split("=");
+        if(name === cookiePair[0].trim()) {
+            return true;
+        }
+    }
+    return false;
+}
+```
