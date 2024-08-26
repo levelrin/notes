@@ -736,6 +736,93 @@ if torch.cuda.is_available():
     torch.cuda.manual_seed_all(0)
 ```
 
+## Use GPU
+
+```python
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+import matplotlib.pyplot as plt
+
+
+seed = 1
+device = torch.device("cpu")
+torch.manual_seed(seed)
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+    # I noticed that this does not have any effect.
+    # It seemed the model used CPU seed for some reason.
+    # However, I was able to conclude that GPU was used because the computation time was quite different.
+    torch.cuda.manual_seed_all(seed)
+
+
+class OurNet(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+        self.fc = nn.Sequential(
+            nn.Linear(1, 30),
+            nn.ReLU(),
+            nn.Linear(30, 1),
+            nn.ReLU()
+        )
+
+    def forward(self, input_tensor):
+        """
+        As is.
+        :param input_tensor: Shape: (batch_size, input_node_amount).
+        :return: A tensor with the same shape as the input.
+        """
+        return self.fc(input_tensor)
+
+    def fit(self, train_inputs, train_labels):
+        """
+        Train the model.
+        :param train_inputs: A tensor with the shape: (batch_size, input_node_amount).
+        :param train_labels: A tensor with the same shape as the `train_inputs`.
+        :return: None.
+        """
+        loss_function = nn.MSELoss()
+        optimizer = optim.Adam(self.parameters(), lr=0.01)
+        for epoch in range(500):
+            optimizer.zero_grad()
+            outputs = self.forward(train_inputs)
+            loss = loss_function(outputs, train_labels)
+            if loss < 0.0001:
+                break
+            loss.backward()
+            optimizer.step()
+
+
+def main():
+    # Move the model to GPU.
+    model = OurNet().to(device)
+
+    # Training Data.
+    # Make sure we move them to GPU.
+    train_inputs = torch.tensor([[0.], [0.5], [1.]]).to(device)
+    train_labels = torch.tensor([[0.], [1.], [0.]]).to(device)
+
+    # Train
+    model.fit(train_inputs, train_labels)
+
+    # Draw the regression line.
+    # We should move `input_values` to GPU because the model will use it.
+    input_values = torch.linspace(start=0, end=1, steps=11).reshape(-1, 1).to(device)
+    # We should move `output_values` to CPU because they are used for plotting.
+    output_values = model(input_values).cpu()
+    # We should move the `input_values` to CPU for plotting.
+    plt.plot(input_values.squeeze().detach().cpu(), output_values.squeeze().detach())
+
+    # Draw the training data to see the performance.
+    # Again, we need to move all tensors to CPU for plotting.
+    plt.scatter(train_inputs.cpu(), train_labels.cpu(), color="red")
+    plt.show()
+
+main()
+```
+
 ## Save and Load Parameters
 
 We can save the model's parameters like this:
