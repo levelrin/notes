@@ -71,3 +71,71 @@ input_tensor_2: tensor([[3.],
         [1.],
         [2.]]), equal: False
 ```
+
+## TensorDictModule with multiple keys
+
+```python
+import torch
+from tensordict import TensorDict
+from tensordict.nn import TensorDictModule
+from torch import nn
+
+
+class OurModel(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+        self.linear_1 = nn.Linear(1, 2)
+        self.linear_2 = nn.Linear(1, 2)
+
+    def forward(self, inputs_1, inputs_2):
+        """
+        Calculate the average of two linear outputs.
+        :param inputs_1: A tensor with the shape: (batch_size, 1).
+        :param inputs_2: A tensor with the shape: (batch_size, 1).
+        :return: A tensor with the shape: (batch_size, 2).
+        """
+        outputs_1 = self.linear_1(inputs_1)
+        outputs_2 = self.linear_2(inputs_2)
+        return (outputs_1 + outputs_2) / 2
+
+def main():
+    inputs_tensor_1 = torch.FloatTensor([[0], [1], [2]])
+    inputs_tensor_2 = torch.FloatTensor([[3], [4], [5]])
+    model = OurModel()
+    tensor_dict = TensorDict({
+        "inputs_1": inputs_tensor_1,
+        "inputs_2": inputs_tensor_2
+    }, batch_size=3)
+    # Since our model takes 2 inputs, we can have two in_keys.
+    # TensorDictModule will map the keys and inputs in order.
+    tensor_dict_module = TensorDictModule(model, in_keys=["inputs_1", "inputs_2"], out_keys=["output"])
+    output_tensor_dict = tensor_dict_module(tensor_dict)
+    print(f"output_tensor_dict: {output_tensor_dict}")
+
+    # We can confirm the input mapping.
+    inputs_1 = output_tensor_dict["inputs_1"]
+    print(f"inputs_1: {inputs_1}")
+    inputs_2 = output_tensor_dict["inputs_2"]
+    print(f"inputs_2: {inputs_2}")
+
+main()
+```
+
+Here is the output:
+```
+output_tensor_dict: TensorDict(
+    fields={
+        inputs_1: Tensor(shape=torch.Size([3, 1]), device=cpu, dtype=torch.float32, is_shared=False),
+        inputs_2: Tensor(shape=torch.Size([3, 1]), device=cpu, dtype=torch.float32, is_shared=False),
+        output: Tensor(shape=torch.Size([3, 2]), device=cpu, dtype=torch.float32, is_shared=False)},
+    batch_size=torch.Size([3]),
+    device=None,
+    is_shared=False)
+inputs_1: tensor([[0.],
+        [1.],
+        [2.]])
+inputs_2: tensor([[3.],
+        [4.],
+        [5.]])
+```
