@@ -68,3 +68,47 @@ logits: tensor([[ 0.7498, -0.1417,  0.3959, -0.0788],
         [ 0.2695, -2.4994,  3.0241,  0.1675]], grad_fn=<AddmmBackward0>)
 action: tensor([0, 2, 2])
 ```
+
+## ValueOperator
+
+```python
+import torch
+from tensordict import TensorDict
+from torch import nn
+from torchrl.modules import ValueOperator
+
+
+def main():
+    # Let's say there are 2 states, and it will give the score of an action.
+    value_net = nn.Linear(2, 1)
+    value_operator = ValueOperator(
+        module=value_net,
+        # It's the parameters for model.forward() in order.
+        # In this case, it's the same as the value_net.forward(tensor_dict["observation"]).
+        in_keys=["observation"],
+        # It's the outputs from the model.forward() in order.
+        out_keys=["state_value"]
+    )
+    tensor_dict = TensorDict({
+        "observation": torch.FloatTensor([[0, 1], [2, 3]])
+    }, batch_size=2)
+    output_tensor_dict = value_operator(tensor_dict)
+    print(f"output_tensor_dict: {output_tensor_dict}")
+    state_value = output_tensor_dict["state_value"]
+    print(f"state_value: {state_value}")
+
+main()
+```
+
+Here is the console output:
+```
+output_tensor_dict: TensorDict(
+    fields={
+        observation: Tensor(shape=torch.Size([2, 2]), device=cpu, dtype=torch.float32, is_shared=False),
+        state_value: Tensor(shape=torch.Size([2, 1]), device=cpu, dtype=torch.float32, is_shared=False)},
+    batch_size=torch.Size([2]),
+    device=None,
+    is_shared=False)
+state_value: tensor([[0.2035],
+        [0.8668]], grad_fn=<AddmmBackward0>)
+```
