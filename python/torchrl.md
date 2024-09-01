@@ -112,3 +112,93 @@ output_tensor_dict: TensorDict(
 state_value: tensor([[0.2035],
         [0.8668]], grad_fn=<AddmmBackward0>)
 ```
+
+## GAE
+
+```python
+import torch
+from tensordict import TensorDict
+from tensordict.nn import TensorDictModule
+from torch import nn
+from torchrl.objectives.value import GAE
+
+
+def main():
+    # Let's say there are 2 states, and it will give the score of an action.
+    value_network = nn.Linear(2, 1)
+    tensor_dict_module = TensorDictModule(value_network, in_keys=["states"], out_keys=["value"])
+    # It stands for generalized advantage estimation.
+    gae = GAE(
+        # Discount factor for future rewards.
+        # Range: (0, 1] because gamma=0 can cause the "index out of range" error.
+        # gamma -> 0 means we consider immediate rewards only.
+        gamma=0.98,
+        # It controls the trade-off between bias and variance in the estimation of advantages.
+        # Range: (0, 1].
+        # lmbda -> 0 means we are chasing for immediate advantages only (high bias and low variance).
+        # lmbda -> 1 as we prefer on long-term advantages.
+        lmbda=0.95,
+        value_network=tensor_dict_module
+    )
+    # The output tensor dict from GAE will have the following keys.
+    gae.set_keys(
+        # It's a measurement of how better the action was compared to the estimation.
+        advantage="advantage",
+        # The "actual" value that the value network should've generated.
+        # Note that it's not necessarily the true value.
+        # GAE calculates it by taking rewards and future rewards into consideration.
+        value_target="value_target",
+        # The value from the value network.
+        value="value",
+    )
+    # Input for the GAE.
+    # Note that we must use the exact key names shown below except for the "states" key.
+    # The "states" key is the one we use for the `tensor_dict_module` above.
+    tensor_dict = TensorDict({
+        # It refers to the data after taking an action.
+        "next": {
+            # This will influence the `value_target` because future rewards will be estimated using this.
+            "states": torch.FloatTensor([[4, 5], [6, 7]]),
+            "reward": torch.FloatTensor([[1], [-1]]),
+            # It indicates if the episode has ended.
+            # 0 means false, 1 means true.
+            "done": torch.BoolTensor([[1], [1]]),
+            # The difference between "done" and "terminated" is that done includes termination outside MDP process.
+            # For example, done can be true if the episode ends due to time out.
+            # The "terminated" only considers the termination by the MDP process (either success or failure).
+            "terminated": torch.BoolTensor([[1], [1]])
+        },
+        "states": torch.FloatTensor([[0, 1], [2, 3]])
+    }, batch_size=2)
+    output_tensor_dict = gae(tensor_dict)
+    print(f"output_tensor_dict: {output_tensor_dict}")
+    advantage = output_tensor_dict["advantage"]
+    print(f"advantage: {advantage}")
+
+main()
+```
+
+Here is the console output:
+```
+output_tensor_dict: TensorDict(
+    fields={
+        advantage: Tensor(shape=torch.Size([2, 1]), device=cpu, dtype=torch.float32, is_shared=False),
+        next: TensorDict(
+            fields={
+                done: Tensor(shape=torch.Size([2, 1]), device=cpu, dtype=torch.bool, is_shared=False),
+                reward: Tensor(shape=torch.Size([2, 1]), device=cpu, dtype=torch.float32, is_shared=False),
+                states: Tensor(shape=torch.Size([2, 2]), device=cpu, dtype=torch.float32, is_shared=False),
+                terminated: Tensor(shape=torch.Size([2, 1]), device=cpu, dtype=torch.bool, is_shared=False),
+                value: Tensor(shape=torch.Size([2, 1]), device=cpu, dtype=torch.float32, is_shared=False)},
+            batch_size=torch.Size([2]),
+            device=None,
+            is_shared=False),
+        states: Tensor(shape=torch.Size([2, 2]), device=cpu, dtype=torch.float32, is_shared=False),
+        value: Tensor(shape=torch.Size([2, 1]), device=cpu, dtype=torch.float32, is_shared=False),
+        value_target: Tensor(shape=torch.Size([2, 1]), device=cpu, dtype=torch.float32, is_shared=False)},
+    batch_size=torch.Size([2]),
+    device=None,
+    is_shared=False)
+advantage: tensor([[ 1.4274],
+        [-1.8038]])
+```
