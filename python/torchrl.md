@@ -136,7 +136,7 @@ def main():
         # It controls the trade-off between bias and variance in the estimation of advantages.
         # Range: (0, 1].
         # lmbda -> 0 means we are chasing for immediate advantages only (high bias and low variance).
-        # lmbda -> 1 as we prefer on long-term advantages.
+        # lmbda -> 1 as we prefer long-term advantages.
         lmbda=0.95,
         value_network=tensor_dict_module
     )
@@ -163,8 +163,8 @@ def main():
             # It indicates if the episode has ended.
             # 0 means false, 1 means true.
             "done": torch.BoolTensor([[1], [1]]),
-            # The difference between "done" and "terminated" is that done includes termination outside MDP process.
-            # For example, done can be true if the episode ends due to time out.
+            # The difference between "done" and "terminated" is that done includes termination outside the MDP process.
+            # For example, `done` can be true if the episode ends due to time out.
             # The "terminated" only considers the termination by the MDP process (either success or failure).
             "terminated": torch.BoolTensor([[1], [1]])
         },
