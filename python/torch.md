@@ -713,9 +713,10 @@ else:
 
 # If this prints an empty list, you probably installed the cpu-only PyTorch.
 # In that case, you need to uninstall the current torch and install the GPU-enabled one.
-# I used this command to install the correct one:
+# I found the installation command for it from this URL: https://pytorch.org/get-started/locally
+# Like this:
 # ```sh
-# pip install -f https://download.pytorch.org/whl/torch_stable.html torch
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 # ```
 # By the way, I recommend using a virtual environment so you don't have to mess with the system packages.
 print(torch.cuda.get_arch_list())
