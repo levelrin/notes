@@ -701,6 +701,126 @@ def main():
 main()
 ```
 
+Token Optimization:
+```python
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
+seed = 3
+torch.manual_seed(seed)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(seed)
+
+class OurModel(nn.Module):
+
+    def __init__(self, token_to_index):
+        super().__init__()
+        self.token_to_index = token_to_index
+        self.vocab_size = len(token_to_index)
+        token_vec_dim = 2
+        self.embeds = nn.Embedding(self.vocab_size, token_vec_dim)
+        self.fc = nn.Sequential(
+            nn.Linear(token_vec_dim, token_vec_dim),
+            nn.ReLU(),
+            nn.Linear(token_vec_dim, self.vocab_size),
+            nn.ReLU()
+        )
+
+    def forward(self, token_indexes):
+        """
+        For predicting the next token.
+        :param token_indexes: List of token_indexes.
+        :return: A token with the size: (batch_size, vocab_size).
+                 Each element in the batch represents the logits for the next token.
+        """
+        input_token_vectors = self.embeds(torch.LongTensor(token_indexes))
+        return self.fc(input_token_vectors)
+
+def main():
+    token_to_index = {
+        "apple": 0,
+        "banana": 1,
+        "lime": 2,
+        "red": 3,
+        "yellow": 4,
+        "green": 5
+    }
+    index_to_token = {index: token for token, index in token_to_index.items()}
+    model = OurModel(token_to_index)
+
+    fig, axs = plt.subplots(2, 1)
+    plt.subplots_adjust(hspace=0.5)
+    tokens_ax = axs[0]
+    tokens_ax.set_title("Tokens")
+    token_vecs_list = []
+
+    loss_ax = axs[1]
+    loss_ax.set_title("Loss")
+    loss_ax.set_xlabel("epochs")
+    loss_ax.set_ylabel("loss")
+    loss_line = loss_ax.plot([], [])[0]
+    losses = []
+
+    loss_function = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters())
+    max_epoch = 500
+    for epoch in range(max_epoch):
+        token_vecs_list.append(model.embeds.state_dict()["weight"].clone())
+
+        logits = model([0, 1, 2])
+        correct_indexes = [3, 4, 5]
+        loss = loss_function(logits, torch.LongTensor(correct_indexes))
+
+        losses.append(loss.detach())
+
+        loss.backward()
+
+        optimizer.step()
+        optimizer.zero_grad()
+
+    tokens_ax.set_xlim(-5, 5)
+    tokens_ax.set_ylim(-5, 5)
+    loss_ax.set_xlim(0, max_epoch + 1)
+    loss_ax.set_ylim(0, max(losses) + 0.05)
+
+    def update(frame):
+        tokens_ax.clear()
+        tokens_ax.set_title("Tokens")
+        token_vecs = token_vecs_list[frame]
+        token_vecs_x_values = [vec[0].item() for vec in token_vecs]
+        token_vecs_y_values = [vec[1].item() for vec in token_vecs]
+        tokens_ax.scatter(token_vecs_x_values, token_vecs_y_values)
+        for token_index in range(len(token_vecs)):
+            text_position_x = token_vecs_x_values[token_index]
+            text_position_y = token_vecs_y_values[token_index]
+            tokens_ax.text(
+                text_position_x,
+                text_position_y,
+                index_to_token[token_index],
+                horizontalalignment="left",
+                verticalalignment="bottom",
+                weight="semibold"
+            )
+
+        loss_line.set_data(list(range(frame)), losses[:frame])
+        return [tokens_ax, loss_line]
+
+    animation = FuncAnimation(
+        fig=fig,
+        func=update,
+        frames=max_epoch,
+        interval=50,
+        repeat=False
+    )
+    plt.show()
+
+main()
+```
+
 ## Check if GPU is used
 
 ```python
