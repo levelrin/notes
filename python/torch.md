@@ -706,14 +706,11 @@ Token Optimization:
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 
 seed = 3
 torch.manual_seed(seed)
-if torch.cuda.is_available():
-    torch.cuda.manual_seed_all(seed)
 
 class OurModel(nn.Module):
 
@@ -724,10 +721,11 @@ class OurModel(nn.Module):
         token_vec_dim = 2
         self.embeds = nn.Embedding(self.vocab_size, token_vec_dim)
         self.fc = nn.Sequential(
-            nn.Linear(token_vec_dim, token_vec_dim),
-            nn.ReLU(),
-            nn.Linear(token_vec_dim, self.vocab_size),
-            nn.ReLU()
+            # I initially had more layers.
+            # Surprisingly, I realized that the simplest neural network performs better than some of the complicated ones.
+            # Also, it's important NOT to use ReLU at the end because it turns negative values into zeros.
+            # That's like telling the neural network to increase the incorrect scores.
+            nn.Linear(token_vec_dim, self.vocab_size)
         )
 
     def forward(self, token_indexes):
@@ -745,9 +743,11 @@ def main():
         "apple": 0,
         "banana": 1,
         "lime": 2,
-        "red": 3,
-        "yellow": 4,
-        "green": 5
+        "grape": 3,
+        "red": 4,
+        "yellow": 5,
+        "green": 6,
+        "blue": 7
     }
     index_to_token = {index: token for token, index in token_to_index.items()}
     model = OurModel(token_to_index)
@@ -767,20 +767,23 @@ def main():
 
     loss_function = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters())
-    max_epoch = 500
+    max_epoch = 1000
     for epoch in range(max_epoch):
         token_vecs_list.append(model.embeds.state_dict()["weight"].clone())
 
-        logits = model([0, 1, 2])
-        correct_indexes = [3, 4, 5]
-        loss = loss_function(logits, torch.LongTensor(correct_indexes))
-
-        losses.append(loss.detach())
-
+        logits = model([0, 1, 2, 3])
+        loss = loss_function(logits, torch.LongTensor([4, 5, 6, 7]))
         loss.backward()
-
         optimizer.step()
         optimizer.zero_grad()
+        print(f"loss: {loss}")
+
+        losses.append(float(loss))
+
+    # Checking the performance after training.
+    logits = model([0, 1, 2, 3])
+    predicted_indexes = torch.argmax(logits, dim=-1)
+    print(f"predicted_indexes: {predicted_indexes}")
 
     tokens_ax.set_xlim(-5, 5)
     tokens_ax.set_ylim(-5, 5)
