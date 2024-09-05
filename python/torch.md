@@ -1041,18 +1041,11 @@ class OurEmbedding(nn.Module):
         # Fully connected layer (fc) for CBOW.
         self.fc_cbow = nn.Sequential(
             # FC: input layer -> hidden layer.
-            nn.Linear(token_vec_dim * 2, token_vec_dim),
-            nn.ReLU(),
-            # FC: hidden layer -> output layer.
-            nn.Linear(token_vec_dim, self.vocab_size),
-            nn.ReLU()
+            nn.Linear(token_vec_dim * 2, self.vocab_size)
         )
         # Fully connected layer for skip-gram.
         self.fc_skip_gram = nn.Sequential(
-            nn.Linear(token_vec_dim, token_vec_dim),
-            nn.ReLU(),
-            nn.Linear(token_vec_dim, self.vocab_size),
-            nn.ReLU()
+            nn.Linear(token_vec_dim, self.vocab_size)
         )
 
     def fit_with_cbow(self, sequences):
@@ -1066,7 +1059,7 @@ class OurEmbedding(nn.Module):
         """
         loss_function = nn.CrossEntropyLoss()
         optimizer = optim.Adam(list(self.embeds.parameters()) + list(self.fc_cbow.parameters()), lr=0.01)
-        for epoch in range(100):
+        for epoch in range(1000):
             optimizer.zero_grad()
             total_loss = 0
             for sequence in sequences:
@@ -1107,7 +1100,7 @@ class OurEmbedding(nn.Module):
         """
         loss_function = nn.MultiLabelSoftMarginLoss()
         optimizer = optim.Adam(list(self.embeds.parameters()) + list(self.fc_skip_gram.parameters()), lr=0.01)
-        for epoch in range(100):
+        for epoch in range(1000):
             optimizer.zero_grad()
             total_loss = 0
             for sequence in sequences:
