@@ -1271,7 +1271,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 
-seed = 8
+seed = 3
 device = torch.device("cpu")
 torch.manual_seed(seed)
 if torch.cuda.is_available():
@@ -1282,12 +1282,16 @@ if torch.cuda.is_available():
 class OurModel(nn.Module):
 
     def __init__(self, token_to_index):
+        """
+        Constructor.
+        :param token_to_index: We assume index=0 represents the "<sos>" token, and index=1 represents the "<eos>" token.
+        """
         super().__init__()
         self.token_to_index = token_to_index
         self.index_to_token = {index: token for token, index in token_to_index.items()}
         self.vocab_size = len(token_to_index)
         # FYI, 512 is the default for the transformer.
-        token_vec_dim = 2
+        token_vec_dim = 64
         self.embeds = nn.Embedding(self.vocab_size, token_vec_dim)
         self.transformer = nn.Transformer(
             d_model=token_vec_dim,
@@ -1298,18 +1302,17 @@ class OurModel(nn.Module):
             batch_first=True
         )
         self.fc = nn.Sequential(
-            nn.Linear(token_vec_dim, token_vec_dim),
+            nn.Linear(token_vec_dim, 30),
             nn.ReLU(),
-            nn.Linear(token_vec_dim, self.vocab_size),
-            nn.ReLU()
+            nn.Linear(30, self.vocab_size)
         )
 
     def forward(self, sequence, max_iteration=10):
         """
         Generate a sequence of tokens in an autoregressive way.
-        The generation ends when <eos> token is generated or reaches the maximum iteration.
+        The generation ends when the "<eos>" token is generated or reaches the maximum iteration.
         Here is how it works:
-        First, we put convert tokens into vectors.
+        First, we convert tokens into vectors.
         Second, we need two parameters to use `nn.Transformer(src, tgt)`.
         The `src` represents the input vectors.
         Ex: A tensor (of vectors) for ["roses", "are"].
@@ -1325,7 +1328,7 @@ class OurModel(nn.Module):
         We put the last element into the fully connected layer to predict the next token.
         If the predicted token is "<eos>", we stop the generation.
         :param sequence: List of tokens. Ex: ["roses", "are"].
-        :param max_iteration: As is.
+        :param max_iteration: We stop generating tokens if it reaches the max_interation without getting the "<eos>" token.
         :return: List of tokens. Ex: ["<sos>", "red", "<eos>"].
         """
         token_indexes_raw = [self.token_to_index[token] for token in sequence]
@@ -1335,8 +1338,6 @@ class OurModel(nn.Module):
         token_vectors = self.embeds(token_indexes_tensor)
         # Shape: (1, token_vec_dim).
         sos_token_vec = self.embeds(torch.LongTensor([0]).to(device))
-        # Shape: (1, token_vec_dim).
-        eos_token_vec = self.embeds(torch.LongTensor([1]).to(device))
         # Shape: (generated_token_amount_so_far, token_vec_dim).
         current_target = sos_token_vec
         generated_token_indexes = [0]
@@ -1380,40 +1381,35 @@ class OurModel(nn.Module):
         :param targets: A batch of targets in a plain list. Ex: [["red"], ["green"]].
                         Actually, it's supposed to look like this: [["<sos>", "red"], ["<sos>", "green"]].
                         However, this method will put "<sos>" for you.
-                        Note that we exclude "<eos>" token on purpose.
+                        Note that we exclude "<eos>" token because there is nothing to predict after that token.
         :return: None.
         """
         loss_function = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(self.parameters(), lr=0.01)
-        for epoch in range(100):
+        optimizer = optim.Adam(self.parameters())
+        for epoch in range(1000):
             batch_source_indexes = [[self.token_to_index[token] for token in source] for source in sources]
-            # Shape: (batch_size, token_amount_in_sequence, token_vec_dim).
+            # Shape: (batch_size, number_of_source_token_indexes, token_vec_dim).
             batch_source_vectors = self.embeds(torch.LongTensor(batch_source_indexes).to(device))
             # Note that we add the index of the "<sos>" token at the beginning for each target token.
             batch_target_indexes = [[0] + [self.token_to_index[token] for token in target] for target in targets]
-            # Shape: (batch_size, token_amount_in_sequence, token_vec_dim).
+            # Shape: (batch_size, number_of_target_token_indexes, token_vec_dim).
             batch_target_vectors = self.embeds(torch.LongTensor(batch_target_indexes).to(device))
-            # The shape is the same as the target.
+            # Shape: (batch_size, number_of_target_token_indexes, token_vec_dim).
             transformer_output = self.transformer(batch_source_vectors, batch_target_vectors)
-            # Shape: (batch_size, token_amount_in_sequence, vocab_size).
+            # Shape: (batch_size, number_of_target_token_indexes, vocab_size).
             batch_raw_scores = self.fc(transformer_output)
             # Note that we add the index of the "<eos>" token at the end for each target token.
             batch_correct_token_indexes = [[self.token_to_index[token] for token in target] + [1] for target in targets]
-            # Reshape to (batch_size * token_amount_in_sequence, vocab_size).
-            # The reason is that the loss function requires 2D tensor as an input.
-            # It's okay to reshape it because it's effectively the same thing as iterating the batch.
-            # view method is the same as reshape method, except it's mutable.
-            # The first -1 is a magic number for automatically calculate the appropriate size of the first dimension based on other dimension.
-            # The second -1 means the size of the last dimension.
-            # Let's say the original shape is (4, 2, 9).
-            # The second -1 determined the size of the last dimension, which is 9.
-            # That makes the remaining dimension to be 4 * 2 = 8 because view and reshape methods keep the number of data.
-            # As a result, the new shape will be (8, 9).
-            flatten_raw_scores = batch_raw_scores.view(-1, batch_raw_scores.size(-1))
-            # Shape: (batch_size * token_amount_in_sequence).
-            flatten_correct_token_indexes_tensor = torch.LongTensor(batch_correct_token_indexes).to(device).view(-1)
-            loss = loss_function(flatten_raw_scores, flatten_correct_token_indexes_tensor)
+            loss = 0
+            for batch_index in range(len(batch_raw_scores)):
+                # Shape: (number_of_target_tokens, vocab_size).
+                raw_scores = batch_raw_scores[batch_index]
+                # Shape: (number_of_target_tokens).
+                correct_token_indexes = torch.LongTensor(batch_correct_token_indexes[batch_index]).to(device)
+                loss += loss_function(raw_scores, correct_token_indexes)
             print(f"epoch: {epoch}, loss: {loss}")
+            if loss < 0.001:
+                break
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
