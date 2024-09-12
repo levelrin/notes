@@ -497,7 +497,10 @@ window.onload = function() {
     if (hasCookie("username")) {
         const username = cookie("username");
         document.getElementById("username-label").innerText = username;
-        const ws = new WebSocket("ws://" + location.host + "/connect?username=" + encodeURIComponent(username));
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.hostname;
+        const port = window.location.port ? `:${window.location.port}` : '';
+        const ws = new WebSocket(`${wsProtocol}//${host}${port}/connect?username=${encodeURIComponent(username)}`);
         ws.addEventListener('open', () => {
             console.log("WebSocket Connected!");
             sendMessage = function() {
