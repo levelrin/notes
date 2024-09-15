@@ -202,6 +202,66 @@ top_values1: tensor([[8., 7.]]), top_indexes1: tensor([[0, 8]])
 top_values2: tensor([[8., 8.]]), top_indexes2: tensor([[0, 1]])
 ```
 
+### torch.stack
+
+```python
+import torch
+
+# All tensors must have the same shape.
+# Shape: (3).
+tensor_1 = torch.LongTensor([0, 1, 2])
+tensor_2 = torch.LongTensor([3, 4, 5])
+# It always creates a new dimension.
+# It stacks the data at the dimension `dim`.
+# In this case, the dimension refers to the direction of the arrangement.
+# For example, dim=0 refers to rows, and dim=1 refers to columns.
+# In this case, it stacks the data by the row: [0, 1, 2] and [3, 4, 5].
+# As a result, the tensor would be: [[0, 1, 2], [3, 4, 5]].
+# Shape: (number_of_rows, number_of_columns) = (2, 3).
+stacked_tensor_1_2_dim_0 = torch.stack((tensor_1, tensor_2), dim=0)
+print(f"stacked_tensor_1_2_dim_0: {stacked_tensor_1_2_dim_0}, shape: {stacked_tensor_1_2_dim_0.shape}")
+
+# In this case, it stacks the data by  the column: [0, 3], [1, 4], and [2, 5].
+# As a result, the tensor would be: [[0, 3], [1, 4], [2, 5]].
+# Shape: (number_of_columns, number_of_rows) = (3, 2).
+stacked_tensor_1_2_dim_1 = torch.stack((tensor_1, tensor_2), dim=1)
+print(f"stacked_tensor_1_2_dim_1: {stacked_tensor_1_2_dim_1}, shape: {stacked_tensor_1_2_dim_1.shape}")
+
+# Shape: (2, 3).
+tensor_3 = torch.LongTensor([[0, 1, 2], [3, 4, 5]])
+tensor_4 = torch.LongTensor([[6, 7, 8], [9, 10, 11]])
+# It stacks the data by the row: [[0, 1, 2], [3, 4, 5]] and [[6, 7, 8], [9, 10, 11]].
+# The result would be:
+# [
+# 	[[0, 1, 2], [3, 4, 5]],
+# 	[[6, 7, 8], [9, 10, 11]]
+# ]
+# Shape: (2, 2, 3).
+stacked_tensor_3_4_dim_0 = torch.stack((tensor_3, tensor_4), dim=0)
+print(f"stacked_tensor_3_4_dim_0: {stacked_tensor_3_4_dim_0}, shape: {stacked_tensor_3_4_dim_0.shape}")
+
+# It stacks the data by the column: [[0, 1, 2], [6, 7, 8]] and [[3, 4, 5], [9, 10, 11]].
+# The result would be:
+# [
+# 	[[0, 1, 2], [6, 7, 8]],
+# 	[[3, 4, 5], [9, 10, 11]]
+# ]
+# Shape: (2, 2, 3).
+stacked_tensor_3_4_dim_1 = torch.stack((tensor_3, tensor_4), dim=1)
+print(f"stacked_tensor_3_4_dim_1: {stacked_tensor_3_4_dim_1}, shape: {stacked_tensor_3_4_dim_1.shape}")
+
+# Unfortunately, a higher dimension becomes harder to explain.
+# Maybe we better not to mess with it :P
+# The result would be:
+# [
+# 	[[0, 6], [1, 7], [2, 8]],
+# 	[[3, 9], [4, 10], [5, 11]]
+# ]
+# Shape: (2, 3, 2).
+stacked_tensor_3_4_dim_2 = torch.stack((tensor_3, tensor_4), dim=2)
+print(f"stacked_tensor_3_4_dim_2: {stacked_tensor_3_4_dim_2}, shape: {stacked_tensor_3_4_dim_2.shape}")
+```
+
 ## CrossEntropyLoss
 
 ```python
