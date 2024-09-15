@@ -1029,6 +1029,60 @@ And we can load the model's parameters like this:
 model.load_state_dict(torch.load("ournet_params.pth"))
 ```
 
+## LSTM
+
+```python
+import torch
+import torch.nn as nn
+
+
+def main():
+    # Shape: (2).
+    tensor_1 = torch.FloatTensor([0, 1])
+    tensor_2 = torch.FloatTensor([2, 3])
+    tensor_3 = torch.FloatTensor([4, 5])
+    # Imagine we have unknown amount of tensors in the list.
+    # We typically use LSTM when the number of input tensors is not fixed and dynamically determined.
+    tensors = [tensor_1, tensor_2, tensor_3]
+    # Shape: (3, 2).
+    input_tensor = torch.stack(tensors)
+    lstm = nn.LSTM(
+        # Number of features in the input.
+        input_size=2,
+        # Number of features in the hidden state (short-term memory).
+        hidden_size=3,
+        # It's the number of LSTMs we want to stack.
+        # 1 is the default value.
+        num_layers=1,
+        # As is. It's False by default.
+        bidirectional=False,
+        # In this case, the `input_tensor` is 2D, so it doesn't matter.
+        # However, it becomes matter if we have batched input because it's False by default.
+        batch_first=True
+    )
+    # The `output` has all the cumulated hidden states.
+    # The shape would be (number_of_tensors, number_of_directions * each_hidden_state_size).
+    # In this case, the number of directions is 1. If `bidirectional=True`, the number of directions would be 2.
+    # Since there are 3 tensors, the number of directions is 1, and each hidden state's size is 3, the output's shape would be (3, 3).
+    #
+    # The `hidden_state` is the short-term memory value at the end of the iteration.
+    # We typically consider this as the final output, with all things considered.
+    # The shape would be (1, 3), in which 1 is the number of layers (num_layers) * the number of directions.
+    #
+    # The `cell_state` is the long-term memory.
+    # We don't typically use this as an output because it's generally used during iterations only.
+    # The shape would be (1, 3), which is the same as the hidden state.
+    #
+    # Note that we are not using batched input now.
+    # But if we use a batched input, the batch_size would be added to the shape of all returned values.
+    output, (hidden_state, cell_state) = lstm(input_tensor)
+    print(f"output: {output}, shape: {output.shape}")
+    print(f"hidden_state: {hidden_state}, shape: {hidden_state.shape}")
+    print(f"cell_state: {cell_state}, shape: {cell_state.shape}")
+
+main()
+```
+
 ## Embedding
 
 ```python
