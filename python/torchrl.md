@@ -317,3 +317,115 @@ loss_tensor_dict: TensorDict(
     is_shared=False)
 loss: 0.49414387345314026
 ```
+
+Here is another example for multiple episodes:
+```python
+import torch
+from tensordict import TensorDict
+from torch import nn
+from tensordict.nn import TensorDictModule, InteractionType
+from torch.distributions import Categorical
+from torchrl.modules import ProbabilisticActor, ValueOperator
+from torchrl.objectives import ClipPPOLoss
+from torchrl.objectives.value import GAE
+
+
+def main():
+    policy_network = nn.Linear(2, 4)
+    policy_module = TensorDictModule(
+        module=policy_network,
+        in_keys=["states"],
+        out_keys=["logits"]
+    )
+    actor = ProbabilisticActor(
+        module=policy_module,
+        in_keys=["logits"],
+        out_keys=["action"],
+        distribution_class=Categorical,
+        default_interaction_type=InteractionType.MODE,
+        return_log_prob=True
+    )
+    value_network = nn.Linear(2, 1)
+    value_operator = ValueOperator(
+        module=value_network,
+        in_keys=["states"],
+        out_keys=["values"]
+    )
+    gae = GAE(
+        gamma=0.98,
+        lmbda=0.95,
+        value_network=value_operator
+    )
+    gae.set_keys(
+        value="values"
+    )
+
+    # PPO
+    loss_module = ClipPPOLoss(
+        actor_network=actor,
+        critic_network=value_operator
+    )
+    loss_module.set_keys(
+        value="values"
+    )
+
+    # Input tensor dicts
+    current_tensor_dict = TensorDict({
+        "states": torch.FloatTensor([[0, 1]])
+    }, batch_size=1)
+    next_tensor_dict = TensorDict({
+        "states": torch.FloatTensor([[2, 3]])
+    }, batch_size=1)
+    next_next_tensor_dict = TensorDict({
+        "states": torch.FloatTensor([[4, 5]])
+    }, batch_size=1)
+
+    actor(current_tensor_dict)
+    actor(next_tensor_dict)
+    actor(next_next_tensor_dict)
+
+    current_tensor_dict["sample_log_prob"] = current_tensor_dict["sample_log_prob"].detach()
+    next_tensor_dict["sample_log_prob"] = next_tensor_dict["sample_log_prob"].detach()
+
+    # First episode.
+    current_tensor_dict["next"] = next_tensor_dict
+    next_tensor_dict["reward"] = torch.FloatTensor([[0]])
+    next_tensor_dict["done"] = torch.BoolTensor([[0]])
+    next_tensor_dict["terminated"] = torch.BoolTensor([[0]])
+
+    # Second episode.
+    next_tensor_dict["next"] = next_next_tensor_dict
+    next_next_tensor_dict["reward"] = torch.FloatTensor([[-10]])
+    next_next_tensor_dict["done"] = torch.BoolTensor([[1]])
+    next_next_tensor_dict["terminated"] = torch.BoolTensor([[1]])
+
+    # We must call the `value_operators` for all states if we have multiple episodes.
+    # Otherwise, GAE will throw exceptions.
+    value_operator(current_tensor_dict)
+    value_operator(next_tensor_dict)
+    value_operator(next_next_tensor_dict)
+
+    # Calculate advantages for the first and second episodes.
+    gae(current_tensor_dict)
+    gae(next_tensor_dict)
+
+    # We need to call the `loss_module` for each episode.
+    loss_current_tensor_dict = loss_module(current_tensor_dict)
+    print(f"loss_current_tensor_dict: {loss_current_tensor_dict}")
+    loss_critic = loss_current_tensor_dict["loss_critic"]
+    loss_entropy = loss_current_tensor_dict["loss_entropy"]
+    loss_objective = loss_current_tensor_dict["loss_objective"]
+    loss = loss_critic + loss_entropy + loss_objective
+    print(f"loss: {loss}")
+
+    # Loss for the second episode.
+    loss_next_tensor_dict = loss_module(next_tensor_dict)
+    print(f"loss_next_tensor_dict: {loss_next_tensor_dict}")
+    loss_critic = loss_next_tensor_dict["loss_critic"]
+    loss_entropy = loss_next_tensor_dict["loss_entropy"]
+    loss_objective = loss_next_tensor_dict["loss_objective"]
+    loss = loss_critic + loss_entropy + loss_objective
+    print(f"loss: {loss}")
+
+main()
+```
