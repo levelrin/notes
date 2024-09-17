@@ -154,6 +154,7 @@ def main():
     # Input for the GAE.
     # Note that we must use the exact key names shown below except for the "states" key.
     # The "states" key is the one we use for the `tensor_dict_module` above.
+    # Also, the input must be batched.
     tensor_dict = TensorDict({
         # It refers to the data after taking an action.
         "next": {
