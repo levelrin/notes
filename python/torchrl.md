@@ -204,6 +204,39 @@ advantage: tensor([[ 1.4274],
         [-1.8038]])
 ```
 
+Alternatively, we can use the [generalized_advantage_estimate](https://pytorch.org/rl/stable/reference/generated/torchrl.objectives.value.functional.generalized_advantage_estimate.html) function.
+
+We may want to use that function instead because [GAE does not support an LSTM-based value network](https://github.com/pytorch/rl/issues/2444).
+
+Here is the sample code:
+```python
+import torch
+from torchrl.objectives.value.functional import generalized_advantage_estimate
+
+
+def main():
+    # We must use batched inputs.
+    advantage, value_target = generalized_advantage_estimate(
+        gamma=0.98,
+        lmbda=0.95,
+        state_value=torch.FloatTensor([[-1], [0]]),
+        next_state_value=torch.FloatTensor([[1], [2]]),
+        reward=torch.FloatTensor([[0], [1]]),
+        done=torch.BoolTensor([[0], [1]]),
+        terminated=torch.BoolTensor([[0], [1]])
+    )
+    print(f"advantage: {advantage}, value_target: {value_target}")
+
+main()
+```
+
+And here is the console output:
+```
+advantage: tensor([[2.9110],
+        [1.0000]]), value_target: tensor([[1.9110],
+        [1.0000]])
+```
+
 ## ClipPPOLoss
 
 ```python
