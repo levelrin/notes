@@ -632,3 +632,235 @@ def main():
 
 main()
 ```
+
+## Train Transformer
+
+```python
+import torch
+import torch.nn as nn
+from tensordict import TensorDict
+from tensordict.nn import TensorDictModule, InteractionType
+from torch import optim
+from torch.distributions import Categorical
+from torch.nn import Embedding
+from torchrl.modules import ProbabilisticActor, ValueOperator
+from torchrl.objectives import ClipPPOLoss
+from torchrl.objectives.value.functional import generalized_advantage_estimate
+
+
+class OurEmbedding:
+
+    def __init__(self, device):
+        self.token_to_index = {
+            "<sos>": 0,
+            "<eos>": 1,
+            "roses": 2,
+            "are": 3,
+            "red": 4
+        }
+        self.vocab_size = len(self.token_to_index)
+        self.token_vec_dim = 8
+        self.device = device
+        self.torch_embedding = Embedding(self.vocab_size, self.token_vec_dim, device=self.device)
+
+
+class PolicyNetwork(nn.Module):
+
+    def __init__(self, our_embedding, device):
+        super().__init__()
+        self.our_embedding = our_embedding
+        self.device = device
+        self.transformer = nn.Transformer(
+            d_model=self.our_embedding.token_vec_dim,
+            nhead = 8 if self.our_embedding.token_vec_dim % 8 == 0 else 2,
+            batch_first = True,
+            device=self.device
+        )
+        self.fc = nn.Sequential(
+            nn.Linear(self.our_embedding.token_vec_dim, self.our_embedding.token_vec_dim * 2, device=self.device),
+            nn.ReLU(),
+            nn.Linear(self.our_embedding.token_vec_dim * 2, self.our_embedding.vocab_size, device=self.device)
+        )
+
+    def forward(self, src_token_vecs, target_token_vecs):
+        """
+        Predict the next token.
+        Note that we assume the inputs are not batched.
+        :param src_token_vecs: Same meaning as the `nn.Transformer.forward(src, tgt)`.
+                               Shape: (number_of_tokens, token_vec_dim).
+        :param target_token_vecs: Same meaning as the `nn.Transformer.forward(src, tgt)`.
+                                  Shape: (number_of_tokens, token_vec_dim).
+        :return: The raw score (logit) for the next token.
+                 Shape: (vocab_size).
+        """
+        # Shape: (number_of_tokens, token_vec_dim).
+        transformer_output = self.transformer(src_token_vecs, target_token_vecs)
+        # Shape: (token_vec_dim).
+        last_token_vec = transformer_output[-1]
+        return self.fc(last_token_vec)
+
+class ValueNetwork(nn.Module):
+
+    def __init__(self, our_embedding, device):
+        super().__init__()
+        self.our_embedding = our_embedding
+        self.device = device
+        self.transformer = nn.Transformer(
+            d_model=self.our_embedding.token_vec_dim,
+            nhead=8 if self.our_embedding.token_vec_dim % 8 == 0 else 2,
+            batch_first=True,
+            device=self.device
+        )
+        self.fc = nn.Sequential(
+            nn.Linear(self.our_embedding.token_vec_dim, self.our_embedding.token_vec_dim * 2, device=self.device),
+            nn.ReLU(),
+            nn.Linear(self.our_embedding.token_vec_dim * 2, 1, device=self.device)
+        )
+
+    def forward(self, src_token_vecs, generated_token_vecs):
+        """
+        Evaluate the performance of the policy.
+        Note that we assume that the inputs are not batched.
+        :param src_token_vecs: Same meaning as the `nn.Transformer.forward(src, tgt)`.
+                               Shape: (number_of_tokens, token_vec_dim).
+        :param generated_token_vecs: Shape: (number_of_tokens, token_vec_dim).
+        :return: Value. Shape: (1).
+        """
+        # Shape: (number_of_tokens, token_vec_dim).
+        transformer_output = self.transformer(src_token_vecs, generated_token_vecs)
+        last_element = transformer_output[-1]
+        return self.fc(last_element)
+
+
+def main():
+    torch.autograd.set_detect_anomaly(True)
+    seed = 3
+    device = torch.device("cpu")
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        torch.cuda.manual_seed_all(seed)
+
+    our_embedding = OurEmbedding(device)
+    policy_network = PolicyNetwork(our_embedding, device)
+    policy_module = TensorDictModule(
+        module=policy_network,
+        in_keys=["src_token_vecs", "target_token_vecs"],
+        out_keys=["logits"]
+    )
+    actor = ProbabilisticActor(
+        module=policy_module,
+        in_keys=["logits"],
+        # Shape: a scalar representing the next token's index.
+        out_keys=["action"],
+        distribution_class=Categorical,
+        # Make decision in a stochastic manner.
+        default_interaction_type=InteractionType.RANDOM,
+        return_log_prob=True
+    )
+    value_network = ValueNetwork(our_embedding, device)
+    value_operator = ValueOperator(
+        module=value_network,
+        in_keys=["src_token_vecs", "target_token_vecs"],
+        out_keys=["value"]
+    )
+    loss_module = ClipPPOLoss(
+        actor_network=actor,
+        critic_network=value_operator
+    )
+    loss_module.set_keys(
+        advantage="advantage",
+        value_target="value_target",
+        value="value",
+        action="action",
+        sample_log_prob="sample_log_prob"
+    )
+
+    # Training
+
+    epoch = 0
+    max_epoch = 10000
+    optimizer = optim.Adam(loss_module.parameters())
+    total_loss = 0
+    while epoch < max_epoch:
+        # We start with 1 because the initial "<sos>" token is already used.
+        token_gen_iteration = 1
+        # It will generate 10 tokens at maximum.
+        max_token_gen_iteration = 10
+        # Shape: (number_of_tokens, token_vec_dim).
+        src_token_vecs = our_embedding.torch_embedding(torch.LongTensor([2, 3]).to(device))
+        # Assuming index=0 corresponds to the "<sos>" token.
+        target_token_indexes = [0]
+        # It's mutable.
+        tensor_dict = TensorDict({}, batch_size=[])
+        current_tensor_dict = tensor_dict
+        # Take actions until we get the "<eos>" token or reach the maximum token lengths.
+        while True:
+            # Shape: (number_of_tokens, token_vec_dim).
+            target_token_vecs = our_embedding.torch_embedding(torch.LongTensor(target_token_indexes).to(device))
+            current_tensor_dict["src_token_vecs"] = src_token_vecs
+            current_tensor_dict["target_token_vecs"] = target_token_vecs
+            value_operator(current_tensor_dict)
+            # Assuming index=1 corresponds to the "<eos>" token.
+            if target_token_indexes[-1] == 1 or token_gen_iteration >= max_token_gen_iteration:
+                break
+            actor(current_tensor_dict)
+            current_tensor_dict["sample_log_prob"] = current_tensor_dict["sample_log_prob"].detach()
+            # Shape: a scalar.
+            next_token_index = current_tensor_dict["action"]
+            target_token_indexes.append(next_token_index.item())
+            current_tensor_dict["next"] = TensorDict({}, batch_size=[])
+            current_tensor_dict = current_tensor_dict["next"]
+            token_gen_iteration += 1
+        # Iterate through the tensor_dict and calculate the advantages.
+        current_tensor_dict = tensor_dict
+        while "next" in current_tensor_dict:
+            done = torch.BoolTensor([[0]]).to(device)
+            terminated = torch.BoolTensor([[0]]).to(device)
+            if current_tensor_dict["action"].item() == 1:
+                done = torch.BoolTensor([[1]]).to(device)
+                terminated = torch.BoolTensor([[1]]).to(device)
+
+            # Reward/Penalty Rules
+            score = 0
+            if len(target_token_indexes) > 1 and target_token_indexes[1] == 4:
+                score += 3
+            if len(target_token_indexes) == 3:
+                score += 5
+            if target_token_indexes == [0, 4, 1]:
+                score += 10
+
+            next_tensor_dict = current_tensor_dict["next"]
+            # Note that we need to use batched input and the output will be in batched form.
+            advantage, value_target = generalized_advantage_estimate(
+                gamma=0.98,
+                lmbda=0.95,
+                state_value=current_tensor_dict["value"].unsqueeze(0),
+                next_state_value=next_tensor_dict["value"].unsqueeze(0),
+                reward=torch.FloatTensor([[score]]).to(device),
+                done=done,
+                terminated=terminated
+            )
+            current_tensor_dict["advantage"] = advantage.squeeze(0)
+            current_tensor_dict["value_target"] = value_target.squeeze(0)
+            current_tensor_dict = current_tensor_dict["next"]
+        # Iterate through the tensor_dict and calculate each loss.
+        current_tensor_dict = tensor_dict
+        while "next" in current_tensor_dict:
+            loss_tensor_dict = loss_module(current_tensor_dict)
+            loss_critic = loss_tensor_dict["loss_critic"]
+            loss_entropy = loss_tensor_dict["loss_entropy"]
+            loss_objective = loss_tensor_dict["loss_objective"]
+            loss = loss_critic + loss_entropy + loss_objective
+            total_loss += loss
+            current_tensor_dict = current_tensor_dict["next"]
+        if epoch % 100 == 0:
+            total_loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+            total_loss = 0
+        print(f"epoch: {epoch}, target_token_indexes: {target_token_indexes}")
+        epoch += 1
+
+main()
+```
