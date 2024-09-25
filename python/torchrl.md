@@ -507,3 +507,128 @@ def main():
 
 main()
 ```
+
+## Exploration in Training
+
+```python
+import torch
+import torch.nn as nn
+from tensordict import TensorDict
+from tensordict.nn import TensorDictModule, InteractionType
+from torch import optim
+from torch.distributions import Categorical
+from torchrl.modules import ProbabilisticActor, ValueOperator
+from torchrl.objectives import ClipPPOLoss
+from torchrl.objectives.value.functional import generalized_advantage_estimate
+
+
+def main():
+    seed = 3
+    torch.manual_seed(seed)
+
+    # Find the maximum number in the list of 10 numbers.
+    policy_network = nn.Sequential(
+        nn.Linear(10, 64),
+        nn.ReLU(),
+        nn.Linear(64, 10)
+    )
+    policy_module = TensorDictModule(
+        module=policy_network,
+        in_keys=["numbers"],
+        out_keys=["logits"]
+    )
+    actor = ProbabilisticActor(
+        module=policy_module,
+        in_keys=["logits"],
+        out_keys=["action"],
+        distribution_class=Categorical,
+        # For training, it's better to randomly pick the action from the distribution to increase the exploration.
+        default_interaction_type=InteractionType.RANDOM,
+        return_log_prob=True
+    )
+    value_network = nn.Sequential(
+        nn.Linear(10, 64),
+        nn.ReLU(),
+        nn.Linear(64, 1)
+    )
+    value_operator = ValueOperator(
+        module=value_network,
+        in_keys=["numbers"],
+        out_keys=["value"]
+    )
+    loss_module = ClipPPOLoss(
+        actor_network=actor,
+        critic_network=value_operator
+    )
+    loss_module.set_keys(
+        advantage="advantage",
+        value_target="value_target",
+        value="value",
+        action="action",
+        sample_log_prob="sample_log_prob"
+    )
+
+    # Training
+
+    epoch = 0
+    max_epoch = 5000
+    optimizer = optim.Adam(loss_module.parameters())
+    number_of_correct_decisions = 0
+    total_loss = 0
+    numbers = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    while epoch < max_epoch:
+        current_tensor_dict = TensorDict({
+            "numbers": torch.FloatTensor(numbers)
+        }, batch_size=[])
+        actor(current_tensor_dict)
+        max_index = current_tensor_dict["action"].item()
+        value_operator(current_tensor_dict)
+        current_tensor_dict["sample_log_prob"] = current_tensor_dict["sample_log_prob"].detach()
+        next_tensor_dict = TensorDict({
+            "numbers": torch.FloatTensor(numbers)
+        }, batch_size=[])
+        value_operator(next_tensor_dict)
+
+        correct_index = numbers.index(max(numbers))
+
+        # Reward/Penalty Rules
+        score = 0
+        if max_index == correct_index:
+            score += 10
+            number_of_correct_decisions += 1
+        else:
+            score -= 1
+        reward = torch.FloatTensor([[score]])
+
+        # Note that we need to use batched input, and the output will be in batched form.
+        advantage, value_target = generalized_advantage_estimate(
+            gamma=0.98,
+            lmbda=0.95,
+            state_value=current_tensor_dict["value"].unsqueeze(0),
+            next_state_value=next_tensor_dict["value"].unsqueeze(0),
+            reward=reward,
+            done=torch.BoolTensor([[1]]),
+            terminated=torch.BoolTensor([[1]])
+        )
+        current_tensor_dict["advantage"] = advantage.squeeze(0)
+        current_tensor_dict["value_target"] = value_target.squeeze(0)
+        loss_tensor_dict = loss_module(current_tensor_dict)
+        loss_critic = loss_tensor_dict["loss_critic"]
+        loss_entropy = loss_tensor_dict["loss_entropy"]
+        loss_objective = loss_tensor_dict["loss_objective"]
+        loss = loss_critic + loss_entropy + loss_objective
+        total_loss += loss
+        print(f"episode: {epoch}, score: {score}, max_num: {numbers[max_index]}")
+        # It's important to let the agent explore the environment enough so that it can experience the rewards.
+        # That's why we optimize the models once every 100 epochs.
+        # More about how rewards affect the training: https://stackoverflow.com/a/79016701/11717859
+        if epoch % 100 == 0:
+            total_loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+            total_loss = 0
+        epoch += 1
+    print(f"Accuracy = {number_of_correct_decisions / max_epoch}")
+
+main()
+```
