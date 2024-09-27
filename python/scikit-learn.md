@@ -302,6 +302,38 @@ model = GridSearchCV(
 
 A `meta-estimator` is an estimator that takes another estimator as a parameter.
 
+## Linear Regression
+
+```python
+import numpy as np
+from matplotlib import pyplot as plt
+from sklearn.linear_model import LinearRegression
+
+
+def main():
+    fig, ax = plt.subplots()
+    ax.set_xlabel("Weight (kg)")
+    ax.set_ylabel("Height (cm)")
+    ax.set_title("Linear Regression")
+
+    x_train = [50, 60, 70, 80, 90]
+    y_train = [150, 170, 160, 180, 170]
+    plt.scatter(x_train, y_train, color="red", label="Training Data")
+
+    model = LinearRegression()
+    # Note that x values need to be 2D array, while y values need to be 1D.
+    model.fit(np.array(x_train).reshape(-1, 1), y_train)
+
+    x_values = np.linspace(50, 90, 100)
+    y_values = model.predict(x_values.reshape(-1, 1))
+    plt.plot(x_values, y_values, label="Regression Line")
+
+    plt.legend()
+    plt.show()
+
+main()
+```
+
 ## Neural Networks
 
 ```python
