@@ -1413,7 +1413,11 @@ class OurModel(nn.Module):
             # FYI, default `nhead` is 8.
             # Also, you will get warnings if you set `nhead` to an odd number.
             nhead=8 if token_vec_dim % 8 == 0 else 2,
-            batch_first=True
+            batch_first=True,
+            dropout=0.0,
+            num_encoder_layers=1,
+            num_decoder_layers=1,
+            dim_feedforward=1,
         )
         self.fc = nn.Sequential(
             nn.Linear(token_vec_dim, 30),
@@ -1421,30 +1425,12 @@ class OurModel(nn.Module):
             nn.Linear(30, self.vocab_size)
         )
 
-    def forward(self, sequence, max_iteration=10):
-        """
-        Generate a sequence of tokens in an autoregressive way.
-        The generation ends when the "<eos>" token is generated or reaches the maximum iteration.
-        Here is how it works:
-        First, we convert tokens into vectors.
-        Second, we need two parameters to use `nn.Transformer(src, tgt)`.
-        The `src` represents the input vectors.
-        Ex: A tensor (of vectors) for ["roses", "are"].
-        The `tgt` represents the generated vectors so far.
-        Initially, we use the tensor for ["<sos>"].
-        The output of `nn.Transformer(src, tgt)` is a tensor with the same shape as the `tgt`.
-        For example, if `tgt` was a tensor for ["<sos>"], the output will be a tensor of vectors like [[1, 2]].
-        We grab the [1, 2], put it into the fully connected layer to predict the next token.
-        Once we got the next token, we append it to the `tgt`.
-        For example, the `tgt` for the next iteration could be a tensor for ["<sos>", "red"].
-        The transformer's output may look like a tensor of vectors like [[1, 2], [3, 4]].
-        Note that we only grab the last element [3, 4] and ignore the rest.
-        We put the last element into the fully connected layer to predict the next token.
-        If the predicted token is "<eos>", we stop the generation.
-        :param sequence: List of tokens. Ex: ["roses", "are"].
-        :param max_iteration: We stop generating tokens if it reaches the max_interation without getting the "<eos>" token.
-        :return: List of tokens. Ex: ["<sos>", "red", "<eos>"].
-        """
+    def forward(self, source_vecs, target_vecs):
+        transformer_output = self.transformer(source_vecs, target_vecs)
+        last_element = transformer_output[-1]
+        return self.fc(last_element)
+
+    def generate(self, sequence, max_iteration=10):
         token_indexes_raw = [self.token_to_index[token] for token in sequence]
         # Shape: (token_amount).
         token_indexes_tensor = torch.LongTensor([index for index in token_indexes_raw]).to(device)
@@ -1458,12 +1444,7 @@ class OurModel(nn.Module):
         iteration = 1
         predicted_token_index = -1
         while predicted_token_index != 1 and iteration < max_iteration:
-            # The shape is the same as the target.
-            transformer_output = self.transformer(token_vectors, current_target)
-            # Shape: (token_vec_dim).
-            last_element = transformer_output[-1]
-            # Shape: (vocab_size)
-            raw_scores = self.fc(last_element)
+            raw_scores = self.forward(token_vectors, current_target)
             predicted_token_index = torch.argmax(raw_scores).item()
             generated_token_indexes.append(predicted_token_index)
             # Shape: (1, token_vec_dim).
@@ -1473,58 +1454,31 @@ class OurModel(nn.Module):
         return [self.index_to_token[index] for index in generated_token_indexes]
 
     def fit(self, sources, targets):
-        """
-        Train the model.
-        Here is how it works:
-        First, we convert tokens into vectors.
-        Second, we get the output from `nn.Transformer(sources, targets)`.
-        The transformer's output will be a batch of generated tokens.
-        Note that the output's shape is the same as the shape of targets.
-        Then, we put the transformer's output as an input for the fully connected layer.
-        The fully connected layer will give a batch of raw scores.
-        With each raw scores, we can determine the predicted next token.
-        For the loss, we can compare the predicted next token and the actual next token from the target of the transformer.
-        For example, the targets were: [["<sos>", "red"], ["<sos>", "green"]].
-        The transformer's output was: [[value_1, value_2], [value_3, value_4]].
-        The fully connected layer's output was: [[raw_score_1, raw_score_2], [raw_score_3, raw_score_4]].
-        The raw_score_1 should've predicted the token "red".
-        The raw_score_2 should've predicted the token "<eos>".
-        As you can see, the last score corresponds to the "<eos>" token.
-        That's why we excluded the "<eos>" token in targets.
-        :param sources: A batch of sources in a plain list. Ex: [["roses", "are"], ["limes", "are"]].
-        :param targets: A batch of targets in a plain list. Ex: [["red"], ["green"]].
-                        Actually, it's supposed to look like this: [["<sos>", "red"], ["<sos>", "green"]].
-                        However, this method will put "<sos>" for you.
-                        Note that we exclude "<eos>" token because there is nothing to predict after that token.
-        :return: None.
-        """
         loss_function = nn.CrossEntropyLoss()
         optimizer = optim.Adam(self.parameters())
-        for epoch in range(1000):
-            batch_source_indexes = [[self.token_to_index[token] for token in source] for source in sources]
-            # Shape: (batch_size, number_of_source_token_indexes, token_vec_dim).
-            batch_source_vectors = self.embeds(torch.LongTensor(batch_source_indexes).to(device))
-            # Note that we add the index of the "<sos>" token at the beginning for each target token.
-            batch_target_indexes = [[0] + [self.token_to_index[token] for token in target] for target in targets]
-            # Shape: (batch_size, number_of_target_token_indexes, token_vec_dim).
-            batch_target_vectors = self.embeds(torch.LongTensor(batch_target_indexes).to(device))
-            # Shape: (batch_size, number_of_target_token_indexes, token_vec_dim).
-            transformer_output = self.transformer(batch_source_vectors, batch_target_vectors)
-            # Shape: (batch_size, number_of_target_token_indexes, vocab_size).
-            batch_raw_scores = self.fc(transformer_output)
-            # Note that we add the index of the "<eos>" token at the end for each target token.
-            batch_correct_token_indexes = [[self.token_to_index[token] for token in target] + [1] for target in targets]
-            loss = 0
-            for batch_index in range(len(batch_raw_scores)):
-                # Shape: (number_of_target_tokens, vocab_size).
-                raw_scores = batch_raw_scores[batch_index]
-                # Shape: (number_of_target_tokens).
-                correct_token_indexes = torch.LongTensor(batch_correct_token_indexes[batch_index]).to(device)
-                loss += loss_function(raw_scores, correct_token_indexes)
-            print(f"epoch: {epoch}, loss: {loss}")
-            if loss < 0.001:
+        for epoch in range(500):
+            total_loss = 0
+            for sequence_index in range(len(sources)):
+                source_sequence = sources[sequence_index]
+                target_sequence = targets[sequence_index]
+                source_indexes = [self.token_to_index[token] for token in source_sequence]
+                source_vectors = self.embeds(torch.LongTensor(source_indexes).to(device))
+                sos_token_vec = self.embeds(torch.LongTensor([0]).to(device))
+                current_target = sos_token_vec
+                correct_token_indexes = [self.token_to_index[token] for token in target_sequence]
+                correct_token_indexes.append(1)
+                for target_index in range(len(correct_token_indexes)):
+                    raw_scores = self.forward(source_vectors, current_target).reshape(1, -1)
+                    correct_token_index = torch.LongTensor([correct_token_indexes[target_index]]).to(device)
+                    loss = loss_function(raw_scores, correct_token_index)
+                    total_loss += loss
+                    correct_token_vec = self.embeds(correct_token_index)
+                    current_target = torch.cat((current_target, correct_token_vec), dim=0).to(device)
+            print(f"epoch: {epoch}, total_loss: {total_loss}")
+            if total_loss < 3.5:
                 break
-            loss.backward()
+            total_loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.parameters(), 0.001)
             optimizer.step()
             optimizer.zero_grad()
 
@@ -1534,33 +1488,43 @@ def main():
         "<sos>": 0,
         # eos stands for end of sequence.
         "<eos>": 1,
-        "roses": 2,
-        "apples": 3,
-        "limes": 4,
-        "cucumbers": 5,
-        "are": 6,
-        "red": 7,
-        "green": 8
+        "a": 2,
+        "b": 3,
+        "1": 4,
+        "2": 5,
+        "3": 6
     }
 
     model = OurModel(token_to_index).to(device)
 
     train_sources = [
-        ["roses", "are"],
-        ["apples", "are"],
-        ["limes", "are"],
-        ["cucumbers", "are"]
+        ["a"],
+        ["1"],
+        ["2"],
+        ["3"],
+        ["a", "1"],
+        ["a", "a"],
+        ["a", "a", "2"],
+        ["a", "a", "a"],
+        ["a", "a", "a", "3"],
+        ["a", "1", "a", "a", "2", "a", "a", "a", "3"],
     ]
     train_targets = [
-        ["red"],
-        ["red"],
-        ["green"],
-        ["green"]
+        ["b"],
+        ["1"],
+        ["2"],
+        ["3"],
+        ["b", "1"],
+        ["b", "b"],
+        ["b", "b", "2"],
+        ["b", "b", "b"],
+        ["b", "b", "b", "3"],
+        ["b", "1", "b", "b", "2", "b", "b", "b", "3"],
     ]
     model.fit(train_sources, train_targets)
 
-    input_tokens = ["roses", "are"]
-    generated_tokens = model(input_tokens)
+    input_tokens = ["a", "a", "2"]
+    generated_tokens = model.generate(input_tokens)
     print(f"input_tokens: {input_tokens}, generated_tokens: {generated_tokens}")
 
 main()
