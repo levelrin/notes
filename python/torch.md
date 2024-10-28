@@ -1380,6 +1380,8 @@ tensor([
 
 Example:
 ```python
+import math
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -1392,6 +1394,33 @@ if torch.cuda.is_available():
     device = torch.device("cuda")
     torch.cuda.manual_seed_all(seed)
 
+class PositionalEncoding(nn.Module):
+    """
+    Unfortunately, `nn.Transformer` does not include positional encoding.
+    We have to manually apply the positional encoding.
+    FYI, this is the feature request in the PyTorch repository:
+    https://github.com/pytorch/pytorch/issues/24826
+    """
+
+    def __init__(self, d_model, dropout=0.1, max_len=5000):
+        super(PositionalEncoding, self).__init__()
+        self.dropout = nn.Dropout(p=dropout)
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        self.register_buffer('pe', pe)
+
+    def forward(self, i):
+        """
+        Encode the input with positions.
+        We assume that the input is not batched.
+        :param i: Shape: (number_of_tokens, token_vec_dim).
+        :return: Shape: (number_of_tokens, token_vec_dim).
+        """
+        i = i + self.pe[:i.size(0), :]
+        return self.dropout(i)
 
 class OurModel(nn.Module):
 
@@ -1406,7 +1435,12 @@ class OurModel(nn.Module):
         self.vocab_size = len(token_to_index)
         # FYI, 512 is the default for the transformer.
         token_vec_dim = 64
+        dropout = 0.0
         self.embeds = nn.Embedding(self.vocab_size, token_vec_dim)
+        self.pe = PositionalEncoding(
+            d_model=token_vec_dim,
+            dropout=dropout,
+        )
         self.transformer = nn.Transformer(
             d_model=token_vec_dim,
             # `d_model` must be divisible by `nhead`.
@@ -1414,7 +1448,7 @@ class OurModel(nn.Module):
             # Also, you will get warnings if you set `nhead` to an odd number.
             nhead=8 if token_vec_dim % 8 == 0 else 2,
             batch_first=True,
-            dropout=0.0,
+            dropout=dropout,
             num_encoder_layers=1,
             num_decoder_layers=1,
             dim_feedforward=1,
@@ -1426,6 +1460,15 @@ class OurModel(nn.Module):
         )
 
     def forward(self, source_vecs, target_vecs):
+        """
+        Predict the raw scores for the next token.
+        We assume the inputs are not batched.
+        :param source_vecs: Shape: (number_of_tokens, token_vec_dim).
+        :param target_vecs: Shape: (number_of_tokens, token_vec_dim).
+        :return: Shape: (vocab_size).
+        """
+        source_vecs = self.pe(source_vecs)
+        target_vecs = self.pe(target_vecs)
         transformer_output = self.transformer(source_vecs, target_vecs)
         last_element = transformer_output[-1]
         return self.fc(last_element)
@@ -1475,7 +1518,7 @@ class OurModel(nn.Module):
                     correct_token_vec = self.embeds(correct_token_index)
                     current_target = torch.cat((current_target, correct_token_vec), dim=0).to(device)
             print(f"epoch: {epoch}, total_loss: {total_loss}")
-            if total_loss < 3.5:
+            if total_loss < 0.001:
                 break
             total_loss.backward()
             torch.nn.utils.clip_grad_norm_(self.parameters(), 0.001)
