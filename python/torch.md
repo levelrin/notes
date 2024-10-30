@@ -1029,6 +1029,27 @@ And we can load the model's parameters like this:
 model.load_state_dict(torch.load("ournet_params.pth"))
 ```
 
+If we want to save the progress of training, we can do something like this:
+```python
+checkpoint_path = "checkpoint.pth"
+torch.save({
+    "model_state_dict": model.state_dict(),
+    "optimizer_state_dict": optimizer.state_dict(),
+    "epoch": epoch
+}, checkpoint_path)
+```
+
+And we can resume the training like this:
+```python
+if os.path.isfile(checkpoint_path):
+    checkpoint = torch.load(checkpoint_path)
+    model.load_state_dict(checkpoint["model_state_dict"])
+    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    epoch = checkpoint["epoch"]
+	# Make sure we set the model to training mode.
+    model.train()
+```
+
 ## LSTM
 
 ```python
