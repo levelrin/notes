@@ -76,3 +76,16 @@ Run the following Windows command to see the server's host machine's private IP:
 ```sh
 ipconfig
 ```
+
+## Access the server from WSL2
+
+The situation is that the server is running on a Windows environment.
+
+You will notice that you cannot access the server using `localhost` from the WSL2 terminal.
+
+To access the server, you need to run the following command from the WSL2 terminal:
+```sh
+ip route show | grep -i default | awk '{ print $3}'
+```
+
+It will output a local IP address, and you can access the server using that IP.
