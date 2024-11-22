@@ -12,3 +12,9 @@ However, you noticed that it didn't have any effect. Why is that? And how would 
 You ran `git status` and discovered that some files you were unaware of had been changed.
 You just want to discard all the changes and make the working tree clean.
 What would you do?
+
+## Networking
+
+You want to `ssh` into your coworker's remote environment, such as the AWS ec2 instance.
+However, you got a permission denied error.
+How would you solve this?
