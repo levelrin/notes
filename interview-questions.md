@@ -18,3 +18,12 @@ What would you do?
 You want to `ssh` into your coworker's remote environment, such as the AWS ec2 instance.
 However, you got a permission denied error.
 How would you solve this?
+
+## Linux
+
+You tried to send a file to your remote server using the `scp` command but failed because you do not have permission to write to that directory.
+What would you do?
+
+You ran `apt install curl` on a Linux machine based on RHEL (Red Hat Enterprise Linux).
+However, you got the "command not found" error.
+What would you do?
