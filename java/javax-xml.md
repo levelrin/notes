@@ -168,6 +168,8 @@ public final class Main {
 
         // Add the dev position to Jane.
         final Element pmPosition = xml.createElement("position");
+        // Note that this removes all the children.
+        // Please use the `setTextContent` method only if you want to overwrite the entire children with the text.
         pmPosition.setTextContent("Project Manager");
         john.appendChild(pmPosition);
 
