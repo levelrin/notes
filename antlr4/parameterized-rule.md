@@ -130,6 +130,8 @@ class OurGrammarListener extends GrammarBaseListener {
         } else {
             final StringJoiner terminals = (StringJoiner) this.currentRule.getUserData("terminals");
             terminals.add(node.getText());
+            // This assumes that the current rule only has the text element.
+            // In other words, we assume that there is no rule that has rules AND texts.
             this.currentRule.setTextContent(terminals.toString());
         }
     }
