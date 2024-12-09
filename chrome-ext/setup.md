@@ -67,3 +67,13 @@ h1 {
     color: red;
 }
 ```
+
+## Local Deployment
+
+1. Go to the extension settings on your Chrome browser.
+  Ex: chrome://extensions/
+  Ex: brave://extensions/
+2. Enable `Developer mode` located in the top right corner.
+3. Click the `Load unpacked` button and select the project folder.
+
+When you modify the code, click the refresh button on the extension settings page to reflect the change.
