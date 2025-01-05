@@ -102,3 +102,34 @@ public final class Main {
 
 }
 ```
+
+## Merge JSON
+
+Let's say we have two JSONs: `{"one":"uno"}` and `{"two":"dos"}`.
+
+We want to merge them so that the result would look like this: `{"one":"uno","two":"dos"}`.
+
+Here's how to do it:
+```java
+package com.levelrin;
+
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
+import java.util.Map;
+
+public final class Main {
+
+    public static void main(final String... args) {
+        final DocumentContext jsonPart = JsonPath.parse("{}");
+        jsonPart.put("$", "one", "uno");
+        final DocumentContext jsonWhole = JsonPath.parse("{}");
+        jsonPart.put("$", "two", "dos");
+        final Map<String, Object> jsonPartMap = jsonPart.json();
+        for (Map.Entry<String, Object> entry : jsonPartMap.entrySet()) {
+            jsonWhole.put("$", entry.getKey(), entry.getValue());
+        }
+        System.out.println(jsonWhole.jsonString());
+    }
+
+}
+```
