@@ -123,12 +123,44 @@ public final class Main {
         final DocumentContext jsonPart = JsonPath.parse("{}");
         jsonPart.put("$", "one", "uno");
         final DocumentContext jsonWhole = JsonPath.parse("{}");
-        jsonPart.put("$", "two", "dos");
+        jsonWhole.put("$", "two", "dos");
         final Map<String, Object> jsonPartMap = jsonPart.json();
         for (Map.Entry<String, Object> entry : jsonPartMap.entrySet()) {
             jsonWhole.put("$", entry.getKey(), entry.getValue());
         }
         System.out.println(jsonWhole.jsonString());
+    }
+
+}
+```
+
+## Check if path exists
+
+```java
+package com.levelrin;
+
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
+
+public final class Main {
+
+    public static void main(final String... args) {
+        final String raw = """
+            {
+              "one": "uno",
+              "fruits": ["apple", "banana", "orange"]
+            }
+            """;
+        final DocumentContext json = JsonPath.parse(raw);
+        // Unfortunately, JsonPath does not provide a method to check if the key exists at the time of writing.
+        // Although it's ugly, we may need to exploit the exception.
+        try {
+            final String two = json.read("$.two");
+            System.out.println(two);
+        } catch (final PathNotFoundException ex) {
+            System.out.println("two does not exist.");
+        }
     }
 
 }
