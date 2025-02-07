@@ -8,13 +8,13 @@ Before:
 After:
 ```
 [
-  ['a', 'b', ],
-  ['c', 'd', ],
+  ['a', 'b'],
+  ['c', 'd'],
   [
-    ['e', 'f', ],
-    ['g', 'h', ],
-    [],
-  ],
+    ['e', 'f'],
+    ['g', 'h'],
+    []
+  ]
 ]
 ```
 
@@ -26,24 +26,27 @@ grammar Grammar;
 @header {package com.levelrin.antlr.generated;}
 
 listDeclaration
-    : '[' listValue (',' listValue)*']'
+    : OPENING_BRACKET listItems CLOSING_BRACKET
+    | emptyList
     ;
 
-listValue
-    : listDeclaration
-    | listEmpty
-    | listSingleLiteral
+listItems
+    : listItem (COMMA listItem)*
     ;
 
-listEmpty
-    : '[' ']'
+listItem
+    : STRING
+    | listDeclaration
     ;
 
-listSingleLiteral
-    : ELEMENT
+emptyList
+    : OPENING_BRACKET CLOSING_BRACKET
     ;
 
-ELEMENT: '\'' [a-zA-Z0-9]* '\'';
+OPENING_BRACKET: '[';
+CLOSING_BRACKET: ']';
+COMMA: ',';
+STRING: '\'' ~[\r\n']* '\'';
 WS: [ \t\r\n]+ -> skip;
 ```
 
@@ -55,68 +58,114 @@ package com.levelrin.antlr4test;
 import com.levelrin.antlr.generated.GrammarBaseVisitor;
 import com.levelrin.antlr.generated.GrammarLexer;
 import com.levelrin.antlr.generated.GrammarParser;
+import java.util.List;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
-final class GrammarVisitor extends GrammarBaseVisitor<String> {
+class GrammarVisitor extends GrammarBaseVisitor<String> {
 
-    private int indentLevel = 0;
+    private static final String INDENT_UNIT = "  ";
 
-    private int listNum = 0;
+    private int currentIndentLevel;
 
     @Override
     public String visitListDeclaration(final GrammarParser.ListDeclarationContext context) {
-        final StringBuilder result = new StringBuilder();
-        result.append("[");
-        final int listNumBefore = this.listNum;
-        for (final GrammarParser.ListValueContext element : context.listValue()) {
-            this.visit(element);
-        }
-        final int listNumAfter = this.listNum;
-        final boolean hasListElement = listNumBefore != listNumAfter;
-        if (hasListElement) {
-            this.indentLevel++;
-        }
-        for (final GrammarParser.ListValueContext element : context.listValue()) {
-            if (hasListElement) {
-                result
-                    .append("\n")
-                    .append("  ".repeat(this.indentLevel))
-                    .append(this.visit(element))
-                    .append(",");
-            } else {
-                result
-                    .append(this.visit(element))
-                    .append(", ");
+        final TerminalNode openingBracket = context.OPENING_BRACKET();
+        final GrammarParser.ListItemsContext listItems = context.listItems();
+        final TerminalNode closingBracket = context.CLOSING_BRACKET();
+        final GrammarParser.EmptyListContext emptyListContext = context.emptyList();
+        final StringBuilder text = new StringBuilder();
+        if (emptyListContext == null) {
+            boolean nested = false;
+            for (final GrammarParser.ListItemContext listItemContext : listItems.listItem()) {
+                if (listItemContext.listDeclaration() != null) {
+                    nested = true;
+                }
             }
-        }
-        if (hasListElement) {
-            this.indentLevel--;
-            result.append("\n").append("  ".repeat(this.indentLevel)).append("]");
+            if (nested) {
+                text.append(this.visit(openingBracket))
+                    .append('\n');
+                this.currentIndentLevel++;
+                text.append(INDENT_UNIT.repeat(this.currentIndentLevel))
+                    .append(this.visitIndentedListItems(listItems))
+                    .append('\n');
+                this.currentIndentLevel--;
+                text.append(INDENT_UNIT.repeat(this.currentIndentLevel))
+                    .append(this.visit(closingBracket));
+            } else {
+                text.append(this.visit(openingBracket))
+                    .append(this.visit(listItems))
+                    .append(this.visit(closingBracket));
+            }
         } else {
-            result.append("]");
+            text.append(this.visit(emptyListContext));
         }
-        return result.toString();
+        return text.toString();
     }
 
     @Override
-    public String visitListValue(final GrammarParser.ListValueContext context) {
-        if (context.listDeclaration() != null) {
-            this.listNum++;
+    public String visitListItems(final GrammarParser.ListItemsContext context) {
+        final List<GrammarParser.ListItemContext> listItemContexts = context.listItem();
+        final List<TerminalNode> commaTerminals = context.COMMA();
+        final StringBuilder text = new StringBuilder();
+        final GrammarParser.ListItemContext firstListItemContext = listItemContexts.get(0);
+        text.append(this.visit(firstListItemContext));
+        for (int index = 0; index < commaTerminals.size(); index++) {
+            final TerminalNode commaTerminal = commaTerminals.get(index);
+            final GrammarParser.ListItemContext listItemContext = listItemContexts.get(index + 1);
+            text.append(this.visit(commaTerminal))
+                .append(' ')
+                .append(this.visit(listItemContext));
         }
-        return this.visit(context.getChild(0));
+        return text.toString();
+    }
+
+    public String visitIndentedListItems(final GrammarParser.ListItemsContext context) {
+        final List<GrammarParser.ListItemContext> listItemContexts = context.listItem();
+        final List<TerminalNode> commaTerminals = context.COMMA();
+        final StringBuilder text = new StringBuilder();
+        final GrammarParser.ListItemContext firstListItemContext = listItemContexts.get(0);
+        text.append(this.visit(firstListItemContext));
+        for (int index = 0; index < commaTerminals.size(); index++) {
+            final TerminalNode commaTerminal = commaTerminals.get(index);
+            final GrammarParser.ListItemContext listItemContext = listItemContexts.get(index + 1);
+            text.append(this.visit(commaTerminal))
+                .append('\n')
+                .append(INDENT_UNIT.repeat(this.currentIndentLevel))
+                .append(this.visit(listItemContext));
+        }
+        return text.toString();
     }
 
     @Override
-    public String visitListEmpty(final GrammarParser.ListEmptyContext context) {
-        return "[]";
+    public String visitListItem(final GrammarParser.ListItemContext context) {
+        final TerminalNode stringTerminal = context.STRING();
+        final GrammarParser.ListDeclarationContext listDeclaration = context.listDeclaration();
+        final StringBuilder text = new StringBuilder();
+        if (stringTerminal == null) {
+            text.append(this.visit(listDeclaration));
+        } else {
+            text.append(this.visit(stringTerminal));
+        }
+        return text.toString();
     }
 
     @Override
-    public String visitListSingleLiteral(final GrammarParser.ListSingleLiteralContext context) {
-        return context.ELEMENT().getText();
+    public String visitEmptyList(final GrammarParser.EmptyListContext context) {
+        final TerminalNode openingBracketTerminal = context.OPENING_BRACKET();
+        final TerminalNode closingBracketTerminal = context.CLOSING_BRACKET();
+        final StringBuilder text = new StringBuilder();
+        text.append(this.visit(openingBracketTerminal))
+            .append(this.visit(closingBracketTerminal));
+        return text.toString();
+    }
+
+    @Override
+    public String visitTerminal(final TerminalNode node) {
+        return node.getText();
     }
 
 }
