@@ -1,3 +1,5 @@
+# Preserve Comments
+
 ## Goal
 
 Here is the input:
@@ -172,4 +174,109 @@ public class Main {
     }
 
 }
+```
+
+# Token Index
+
+We have the following grammar:
+```g4
+grammar Grammar;
+
+@header {package com.levelrin.antlr.generated;}
+
+ab
+    : A B
+    ;
+
+A: 'a';
+B: 'b';
+HYPHEN: [-]+ -> channel(1);
+ASTERISK: [*]+ -> skip;
+```
+
+Let's say the input is: `a--*-b`.
+
+In this case, the token stream would have 4 elements: `["a", "--", "-", "b"]`.
+
+Here is the proof:
+```java
+package com.levelrin.antlr4test;
+
+import com.levelrin.antlr.generated.GrammarBaseVisitor;
+import com.levelrin.antlr.generated.GrammarLexer;
+import com.levelrin.antlr.generated.GrammarParser;
+import java.util.List;
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.TerminalNode;
+
+final class GrammarVisitor extends GrammarBaseVisitor<String> {
+
+    private final CommonTokenStream tokens;
+
+    public GrammarVisitor(final CommonTokenStream tokens) {
+        this.tokens = tokens;
+    }
+
+    @Override
+    public String visitAb(final GrammarParser.AbContext context) {
+        final TerminalNode aTerminal = context.A();
+        final TerminalNode bTerminal = context.B();
+        final StringBuilder text = new StringBuilder();
+        text.append(this.visit(aTerminal));
+        text.append(this.visit(bTerminal));
+        return text.toString();
+    }
+
+    @Override
+    public String visitTerminal(final TerminalNode node) {
+        final int tokenIndex = node.getSymbol().getTokenIndex();
+        final int hiddenChannel = 1;
+        final List<Token> hiddenTokens = this.tokens.getHiddenTokensToLeft(tokenIndex, hiddenChannel);
+        System.out.println("Token Index: " + tokenIndex + ", Text: " + node.getText());
+        final StringBuilder text = new StringBuilder();
+        if (hiddenTokens != null) {
+            for (final Token hiddenToken : hiddenTokens) {
+                System.out.println("Token Index: " + hiddenToken.getTokenIndex() + ", Text: " + hiddenToken.getText());
+                text.append(hiddenToken.getText());
+            }
+        }
+        text.append(node.getText());
+        return text.toString();
+    }
+
+}
+
+public class Main {
+
+    public static void main(String... args) {
+        final String originalText = "a--*-b";
+        final CharStream charStream = CharStreams.fromString(originalText);
+        final GrammarLexer lexer = new GrammarLexer(charStream);
+        final CommonTokenStream tokens = new CommonTokenStream(lexer);
+        final GrammarParser parser = new GrammarParser(tokens);
+        final ParseTree tree = parser.ab();
+        final GrammarVisitor visitor = new GrammarVisitor(tokens);
+        final String result = visitor.visit(tree);
+        System.out.printf("%nBefore:%n%s%n%nAfter:%n%s%n", originalText, result);
+    }
+
+}
+```
+
+The output was:
+```
+Token Index: 0, Text: a
+Token Index: 3, Text: b
+Token Index: 1, Text: --
+Token Index: 2, Text: -
+
+Before:
+a--*-b
+
+After:
+a---b
 ```
