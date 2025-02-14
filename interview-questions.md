@@ -1,3 +1,5 @@
+# Problem Solving
+
 ## Git
 
 You submitted a pull request and noticed that your branch is outdated. How would you update it, assuming that there is no conflicting file?
@@ -27,3 +29,16 @@ What would you do?
 You ran `apt install curl` on a Linux machine based on RHEL (Red Hat Enterprise Linux).
 However, you got the "command not found" error.
 What would you do?
+
+# Abstract Thinking
+
+Difference between:
+1. Git and GitHub
+2. Merge and Rebase
+3. Static Methods and Singleton
+4. URI and URL
+5. API and Protocol
+6. Library and Framework
+7. OOP and Functional Programming
+8. Declarative and Imperative Programming
+9. Unit Test and Integration Test
