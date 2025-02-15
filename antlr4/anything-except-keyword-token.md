@@ -28,6 +28,7 @@ component
     | ANYTHING_EXCEPT_APPLE
     ;
 
+// Define the keyword we want to negate.
 APPLE: 'apple';
 ANY_CHAR: .;
 ```
@@ -70,7 +71,7 @@ final class OurGrammarLexer extends GrammarLexer {
         while (true) {
             token = super.nextToken();
             type = token.getType();
-            if (type == Token.EOF || type == GrammarLexer.APPLE) {
+            if (type != GrammarLexer.ANY_CHAR) {
                 break;
             }
             text.append(token.getText());
@@ -114,5 +115,4 @@ public class Main {
     }
 
 }
-
 ```
