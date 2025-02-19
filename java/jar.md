@@ -22,5 +22,5 @@ Compile:
 
 Run:
 ```sh
-java -jar build/libs/project-name-0.1.0.jar
+java -jar build/libs/{jar-file-name}
 ```
