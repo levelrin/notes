@@ -4,6 +4,22 @@ I created this note mostly from reading.
 
 I have not tested everything yet.
 
+## Phases
+
+1. Registration
+   * We can register a new service worker with this JS code: `navigator.serviceWorker.register(path, scope)`.
+2. Installation
+   * The `install` event will be triggered.
+   * We typically cache resources for offline features.
+3. Activation
+   * The `activate` event will be triggered.
+   * We typically remove old caches.
+4. Running or Idle
+   * Handle various background events, such as `fetch`, `push`, `message`, `sync`, etc.
+5. Terminate and Update
+   * The browser may terminate service workers when they are idle for too long to save resources.
+   * The browser checks any update to the service worker periodically.
+
 ## State Diagram
 
 ```mermaid
