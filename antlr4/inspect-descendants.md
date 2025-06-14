@@ -174,6 +174,9 @@ final class GrammarVisitor extends GrammarBaseVisitor<String> {
      * @return True if a descendant with the specified type is found.
      */
     private boolean hasDescendant(final ParserRuleContext subject, final Class<? extends ParserRuleContext> descendantType) {
+        if (subject.children == null) {
+            return false;
+        }
         boolean result = false;
         // Note that the `children` attribute only gives us direct children.
         // In other words, it doesn't recursively include all descendants.
