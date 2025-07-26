@@ -56,7 +56,7 @@ Alternatively, we can use the fields `http.request.line` and `http.response.line
 
 The following command will display every detail of HTTP communication because the verbose flag (-V) is used.
 ```sh
-sudo tshark -i eth0 -Y "http" -V
+tshark -i eth0 -Y "http" -V
 ```
 
 ## Save Filtered Output
