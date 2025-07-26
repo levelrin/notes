@@ -58,3 +58,23 @@ The following command will display every detail of HTTP communication because th
 ```sh
 sudo tshark -i eth0 -Y "http" -V
 ```
+
+## Save Filtered Output
+
+We can capture the network traffic and save it to a file like this:
+```sh
+tshark -i eth0 -w traffic.pcap
+```
+
+However, we cannot use the display filter (-Y) for the `-w` flag because it's not supported.
+
+Similarly, we cannot use the format flag (-T) either.
+
+Thus, we need to write the console output into a file like this:
+```sh
+tshark -i eth0 -Y "http" -T json -V > traffic.json
+```
+
+This will create a file `traffic.json` and write the output into it.
+
+If the file exists already, it will overwrite the output into it.
