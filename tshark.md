@@ -5,6 +5,18 @@ We can specify which network interface to use like this:
 tshark -i eth0
 ```
 
+We can use `any` to select all interfaces:
+```sh
+tshark -i any
+```
+
+However, it may not work well on Mac.
+
+For example, we noticed that only the HTTP request was captured, and the response was not captured on Mac.
+
+Perhaps the following message from the command was related:
+> tshark: BIOCPROMISC: Operation not supported on socket.
+
 ## Output Control
 
 `tshark` will go through this process in order:
