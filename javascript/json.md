@@ -27,3 +27,13 @@ if (labor !== undefined) {
     console.log("Labor: ", labor);
 }
 ```
+
+## Check if JSON array has the item
+
+```js
+const raw = `[":method", ":scheme", ":authority", ":path", "user-agent", "accept"]`;
+const json = JSON.parse(raw);
+if (json.includes(":authority")) {
+    console.log("Found!");
+}
+```
