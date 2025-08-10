@@ -36,7 +36,12 @@ It operates at a high level.
 
 For example, `tshark -i any -f "tcp port 80" -Y "http"` will display the HTTP communication.
 
-Note that only minimum information would be displayed.
+Note that only the minimum information will be displayed.
+
+We can use multiple filters like this:
+```sh
+tshark -Y "http or http2"
+```
 
 To display more information, we need to specify the output format with the `-T` and `-e` flags.
 
