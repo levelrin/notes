@@ -37,3 +37,14 @@ if (json.includes(":authority")) {
     console.log("Found!");
 }
 ```
+
+## Get the index of the item in the JSON array
+
+```js
+const raw = `[":method", ":scheme", ":authority", ":path", "user-agent", "accept"]`;
+const json = JSON.parse(raw);
+if (json.includes(":authority")) {
+    const index = json.indexOf(":authority");
+    console.log(index);
+}
+```
