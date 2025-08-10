@@ -56,13 +56,19 @@ For example, if we want to display the output in JSON format, we can run the com
 tshark -i any -f "tcp port 80" -Y "http" -T json -e http.request.full_uri -e http.request.line -e http.response_for.uri -e http.response.line
 ```
 
-For the HTTP protocol, we can check the available fields from the [document](https://www.wireshark.org/docs/dfref/h/http.html).
+For the HTTP protocol, we can check the available fields [here](https://www.wireshark.org/docs/dfref/h/http.html).
 
 Note that there is no field for general HTTP headers.
 
 If we want to display general headers, we can use the verbose flag (-V) to display all (it can be tedious to parse, though).
 
 Alternatively, we can use the fields `http.request.line` and `http.response.line` (it turns out to be headers, for some reason, which is confusing).
+
+For the HTTP 2 protocol, we can check the available fields [here](https://www.wireshark.org/docs/dfref/h/http2.html).
+
+Note that the fields are quite different from HTTP 1, for some reason.
+
+Also, we need to use the filter `-Y "http2"`.
 
 ### Verbose
 
@@ -90,3 +96,21 @@ tshark -i any -Y "http" -T json -V > traffic.json
 This will create a file `traffic.json` and write the output into it.
 
 If the file exists already, it will overwrite the output into it.
+
+## Decrypt TLS
+
+We can easily decrypt TLS if the client supports [SSLKEYLOGFILE](https://www.ietf.org/archive/id/draft-thomson-tls-keylogfile-00.html).
+
+`SSLKEYLOGFILE` is the environment variable that we need to set like this:
+```sh
+export SSLKEYLOGFILE=/home/rin/temp/tls-keys.log
+```
+
+When the client starts TLS communication, it appends the TLS session key to the file that we specified via the `SSLKEYLOGFILE`.
+
+Although many clients, such as chromium-based browsers, recognize the practice of using the `SSLKEYLOGFILE` environment variable, we should check if the client supports it by checking if `SSLKEYLOGFILE` is populated.
+
+Once the `SSLKEYLOGFILE` is ready, we can decrypt the communication like this:
+```sh
+tshark -i any -o tls.keylog_file:/home/rin/temp/tls-keys.log -Y "http2" -T json -e http2.header.name -e http2.header.value -e http2.headers.status -e http2.body.reassembled.data
+```
