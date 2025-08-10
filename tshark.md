@@ -114,3 +114,20 @@ Once the `SSLKEYLOGFILE` is ready, we can decrypt the communication like this:
 ```sh
 tshark -i any -o tls.keylog_file:/home/rin/temp/tls-keys.log -Y "http2" -T json -e http2.header.name -e http2.header.value -e http2.headers.status -e http2.body.reassembled.data
 ```
+
+## Check which protocols are used
+
+We can use the `-z io,phs` flag like this:
+```sh
+tshark -r raw-traffic.pcapng -o tls.keylog_file:/home/rin/temp/tls-keys.log -z io,phs
+```
+
+The `-z` flag is for generating the statistics.
+
+The `io` stands for Input/Output.
+
+The `phs` stands for Protocol Hierarchy Statistics.
+
+`io` and `phs` always go together (like this: `io,phs`) by design.
+
+We can think of `phs` as an inner category of `io`.
