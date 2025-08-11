@@ -45,6 +45,6 @@ const raw = `[":method", ":scheme", ":authority", ":path", "user-agent", "accept
 const json = JSON.parse(raw);
 if (json.includes(":authority")) {
     const index = json.indexOf(":authority");
-    console.log(index);
+    console.log(json[index]);
 }
 ```
