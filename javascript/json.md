@@ -48,3 +48,13 @@ if (json.includes(":authority")) {
     console.log(json[index]);
 }
 ```
+
+## Iterate JSON array
+
+```js
+const raw = `[":method", ":scheme", ":authority", ":path", "user-agent", "accept"]`;
+const json = JSON.parse(raw);
+for (let index = 0; index < json.length; index++) {
+    console.log(json[index]);
+}
+```
