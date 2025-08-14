@@ -2,9 +2,11 @@
 
 |Word|Definition|Analogy in RDBs|
 |--|--|--|
-|Database|It contains multiple object stores.|Database|
-|Object Store|It contains multiple records.|Table|
-|Record|It's a JS object.|Row|
+|Database| Contains multiple object stores.|Database|
+|Object Store|Contains multiple records.|Table|
+|Record|A single JavaScript object stored in an object store.|Row|
+|Key|A unique identifier for each record. Always unique within the object store.|Primary Key|
+|Index|We can set a record's property as an index. We can query a record using the index instead of the key. For example, we can find a user using their name (index) instead of their ID (key). Can be unique or non-unique.|Index|
 
 ## Setup
 
