@@ -140,14 +140,59 @@ dbRequest.onsuccess = (event) => {
     // const transaction = db.transaction(["users", "devices"], "readonly");
     // And then, we can select the object store like this:
     // const store = transaction.objectStore("devices");
-    const store = db.transaction("users", "readonly").objectStore("users");
-    const getAllRequest = store.getAll();
+    const getAllRequest = db
+        .transaction("users", "readonly")
+        .objectStore("users")
+        .getAll();
     getAllRequest.onsuccess = () => {
         const users = getAllRequest.result;
         // Output: [{"name":"Rin","email":"levelrin@gmail.com","id":1}]
         console.log("All users:", JSON.stringify(users));
     };
     getAllRequest.onerror = (error) => {
+        // Note that this event will not be called if the query didn't find an item.
+        // The result will just be `undefined`.
+        // This event will be called when API-level failure occurs.
+        // Here are some examples that can trigger this event:
+        //  - Try to write to a read-only transaction.
+        //  - Try to access an object store that doesn't exist.
+        //  - Try to insert a record that conflicts with a unique index.
+        //  - Not enough storage.
+        //  - IndexedDB is unavailable.
+        console.error("Failed to fetch users:", error.target.error);
+    };
+}
+```
+
+### Get Single Value with Index
+
+```js
+const dbName = "temp";
+const dbVersion = 1;
+const dbRequest = window.indexedDB.open(dbName, dbVersion);
+dbRequest.onupgradeneeded = (event) => {
+    const db = event.target.result;
+    const store = db.createObjectStore("users", { keyPath: "id", autoIncrement: true });
+    store.createIndex("name", "name", { unique: false });
+    store.createIndex("email", "email", { unique: true });
+    store.add({ name: "Rin", email: "levelrin@gmail.com" });
+}
+dbRequest.onsuccess = (event) => {
+    const db = event.target.result;
+    db.onerror = (error) => {
+        console.error(`A database ${dbName} v${dbVersion} got an error: ${error}`);
+    }
+    const getRequest = db
+        .transaction("users", "readonly")
+        .objectStore("users")
+        .index("name")
+        .get("Rin");
+    getRequest.onsuccess = () => {
+        const user = getRequest.result;
+        // Output: levelrin@gmail.com
+        console.log("Rin's email:", user.email);
+    };
+    getRequest.onerror = (error) => {
         console.error("Failed to fetch users:", error.target.error);
     };
 }
