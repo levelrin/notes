@@ -243,3 +243,52 @@ dbRequest.onsuccess = (event) => {
     });
 }
 ```
+
+## Put Data
+
+```js
+const dbName = "temp";
+const dbVersion = 1;
+const dbRequest = window.indexedDB.open(dbName, dbVersion);
+dbRequest.onupgradeneeded = (event) => {
+    const db = event.target.result;
+    const store = db.createObjectStore("users", { keyPath: "id", autoIncrement: true });
+    store.createIndex("name", "name", { unique: false });
+    store.createIndex("email", "email", { unique: true });
+    store.add({ id: 0, name: "Rin", email: "levelrin@gmail.com" });
+}
+dbRequest.onsuccess = (event) => {
+    const db = event.target.result;
+    db.onerror = (error) => {
+        console.error(`A database ${dbName} v${dbVersion} got an error: ${error}`);
+    }
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "p") {
+            const putRequest = db
+                .transaction("users", "readwrite")
+                .objectStore("users")
+                // Note that we explicitly specify the `id` here.
+                // Please see the comments below for the reason.
+                .put({ id: 1, name: "Ian", email: "captainian@localhost" });
+            putRequest.onsuccess = () => {
+                console.log("User added or updated successfully!");
+            };
+            putRequest.onerror = (event) => {
+                if (event.target.error.name === "ConstraintError") {
+                    // Although the put request overwrites the record if the primary key already exists,
+                    // we still get the error if the primary key is not duplicated, while any unique index is duplicated.
+                    // For example, let's say we have this record: `{ id: 1, name: "ian", email: "captainian@localhost" }`.
+                    // And then, we put this record: `{ name: "ian", email: "captainian@localhost" }`.
+                    // Since the `id` will be incremented automatically, it won't be duplicated with the existing record.
+                    // However, the unique index `email` is duplicated.
+                    // In other words, we will get the error if we try to put this record: `{ id: 2, name: "ian", email: "captainian@localhost" }`.
+                    // For that reason, we specify the key `id` to be duplicated on purpose to replace the record.
+                    console.error("Cannot put: the unique index already exists.");
+                } else {
+                    console.error("Add failed:", event.target.error);
+                }
+            };
+        }
+    });
+}
+```
