@@ -89,7 +89,7 @@ dbRequest.onupgradeneeded = (event) => {
 }
 ```
 
-## Prepare Initial Data
+## Prepare Initial Records
 
 ```js
 const dbName = "temp";
@@ -116,7 +116,7 @@ dbRequest.onerror = (event) => {
 }
 ```
 
-## Retrieve Data
+## Retrieve Record
 
 ### Get Multiple Values
 
@@ -205,7 +205,7 @@ dbRequest.onsuccess = (event) => {
 }
 ```
 
-## Add Data
+## Add Record
 
 ```js
 const dbName = "temp";
@@ -244,7 +244,7 @@ dbRequest.onsuccess = (event) => {
 }
 ```
 
-## Put Data
+## Put Record
 
 ```js
 const dbName = "temp";
@@ -287,6 +287,43 @@ dbRequest.onsuccess = (event) => {
                 } else {
                     console.error("Add failed:", event.target.error);
                 }
+            };
+        }
+    });
+}
+```
+
+## Delete Record
+
+```js
+const dbName = "temp";
+const dbVersion = 1;
+const dbRequest = window.indexedDB.open(dbName, dbVersion);
+dbRequest.onupgradeneeded = (event) => {
+    const db = event.target.result;
+    const store = db.createObjectStore("users", { keyPath: "id", autoIncrement: true });
+    store.createIndex("name", "name", { unique: false });
+    store.createIndex("email", "email", { unique: true });
+    store.add({ id: 0, name: "Rin", email: "levelrin@gmail.com" });
+}
+dbRequest.onsuccess = (event) => {
+    const db = event.target.result;
+    db.onerror = (error) => {
+        console.error(`A database ${dbName} v${dbVersion} got an error: ${error}`);
+    }
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "d") {
+            const deleteRequest = db
+                .transaction("users", "readwrite")
+                .objectStore("users")
+                // Delete using the key.
+                .delete(1);
+            deleteRequest.onsuccess = () => {
+                // This event will be called even if there is no record to be deleted.
+                console.log("The delete request completed.");
+            };
+            deleteRequest.onerror = (event) => {
+                console.error("Delete failed:", event.target.error);
             };
         }
     });
