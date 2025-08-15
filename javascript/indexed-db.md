@@ -100,7 +100,6 @@ dbRequest.onupgradeneeded = (event) => {
     const store = db.createObjectStore("users", { keyPath: "id", autoIncrement: true });
     store.createIndex("name", "name", { unique: false });
     store.createIndex("email", "email", { unique: true });
-
     // We shouldn't use `db.transaction` because the db request is not finished yet.
     // Instead, we can use the store we just created.
     // Any error would be caught by the dbRequest.onerror.
@@ -111,5 +110,45 @@ dbRequest.onupgradeneeded = (event) => {
 }
 dbRequest.onerror = (event) => {
     console.error(`A database request for the ${dbName} v${dbVersion} got an error: ${event.target.error?.message}`);
+}
+```
+
+## Retrieve Data
+
+### Get Multiple Values
+
+```js
+const dbName = "temp";
+const dbVersion = 1;
+const dbRequest = window.indexedDB.open(dbName, dbVersion);
+dbRequest.onupgradeneeded = (event) => {
+    const db = event.target.result;
+    const store = db.createObjectStore("users", { keyPath: "id", autoIncrement: true });
+    store.createIndex("name", "name", { unique: false });
+    store.createIndex("email", "email", { unique: true });
+    store.add({ name: "Rin", email: "levelrin@gmail.com" });
+}
+dbRequest.onsuccess = (event) => {
+    const db = event.target.result;
+    db.onerror = (error) => {
+        console.error(`A database ${dbName} v${dbVersion} got an error: ${error}`);
+    }
+    // Here is the flow: database -> transaction -> object store -> request.
+    // In this case, it seems the parameter "users" is duplicated.
+    // However, the first part defines the scope of the transaction.
+    // That means we can actually have multiple object store names like this:
+    // const transaction = db.transaction(["users", "devices"], "readonly");
+    // And then, we can select the object store like this:
+    // const store = transaction.objectStore("devices");
+    const store = db.transaction("users", "readonly").objectStore("users");
+    const getAllRequest = store.getAll();
+    getAllRequest.onsuccess = () => {
+        const users = getAllRequest.result;
+        // Output: [{"name":"Rin","email":"levelrin@gmail.com","id":1}]
+        console.log("All users:", JSON.stringify(users));
+    };
+    getAllRequest.onerror = (error) => {
+        console.error("Failed to fetch users:", error.target.error);
+    };
 }
 ```
