@@ -201,3 +201,42 @@ dbRequest.onsuccess = (event) => {
     };
 }
 ```
+
+## Add Data
+
+```js
+const dbName = "temp";
+const dbVersion = 1;
+const dbRequest = window.indexedDB.open(dbName, dbVersion);
+dbRequest.onupgradeneeded = (event) => {
+    const db = event.target.result;
+    const store = db.createObjectStore("users", { keyPath: "id", autoIncrement: true });
+    store.createIndex("name", "name", { unique: false });
+    store.createIndex("email", "email", { unique: true });
+    store.add({ name: "Rin", email: "levelrin@gmail.com" });
+}
+dbRequest.onsuccess = (event) => {
+    const db = event.target.result;
+    db.onerror = (error) => {
+        console.error(`A database ${dbName} v${dbVersion} got an error: ${error}`);
+    }
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "a") {
+            const addRequest = db
+                .transaction("users", "readwrite")
+                .objectStore("users")
+                .add({ name: "Ian", email: "captainian@localhost" });
+            addRequest.onsuccess = () => {
+                console.log("User added successfully!");
+            };
+            addRequest.onerror = (event) => {
+                if (event.target.error.name === "ConstraintError") {
+                    console.error("Cannot add: the key or unique index already exists.");
+                } else {
+                    console.error("Add failed:", event.target.error);
+                }
+            };
+        }
+    });
+}
+```
