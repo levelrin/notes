@@ -189,8 +189,12 @@ dbRequest.onsuccess = (event) => {
         .get("Rin");
     getRequest.onsuccess = () => {
         const user = getRequest.result;
-        // Output: levelrin@gmail.com
-        console.log("Rin's email:", user.email);
+        if (user) {
+            // Output: levelrin@gmail.com
+            console.log("Rin's email:", user.email);
+        } else {
+            console.log("The user does not exist.");
+        }
     };
     getRequest.onerror = (error) => {
         console.error("Failed to fetch users:", error.target.error);
