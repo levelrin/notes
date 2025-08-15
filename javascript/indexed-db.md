@@ -61,7 +61,9 @@ dbRequest.onblocked = (event) => {
 ## Define Schema
 
 ```js
-const dbRequest = window.indexedDB.open("temp", 1);
+const dbName = "temp";
+const dbVersion = 1;
+const dbRequest = window.indexedDB.open(dbName, dbVersion);
 dbRequest.onupgradeneeded = (event) => {
     const db = event.target.result;
     // The object store can be created only during the upgrade because it involves the schema changes.
@@ -84,5 +86,30 @@ dbRequest.onupgradeneeded = (event) => {
     // The second parameter is the actual property of the object. For example, we can search the user(s) by looking at the `user.name` property.
     store.createIndex("name", "name", { unique: false });
     store.createIndex("email", "email", { unique: true });
+}
+```
+
+## Prepare Initial Data
+
+```js
+const dbName = "temp";
+const dbVersion = 1;
+const dbRequest = window.indexedDB.open(dbName, dbVersion);
+dbRequest.onupgradeneeded = (event) => {
+    const db = event.target.result;
+    const store = db.createObjectStore("users", { keyPath: "id", autoIncrement: true });
+    store.createIndex("name", "name", { unique: false });
+    store.createIndex("email", "email", { unique: true });
+
+    // We shouldn't use `db.transaction` because the db request is not finished yet.
+    // Instead, we can use the store we just created.
+    // Any error would be caught by the dbRequest.onerror.
+    store.add({
+        name: "Rin",
+        email: "levelrin@gmail.com"
+    });
+}
+dbRequest.onerror = (event) => {
+    console.error(`A database request for the ${dbName} v${dbVersion} got an error: ${event.target.error?.message}`);
 }
 ```
