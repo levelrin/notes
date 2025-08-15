@@ -104,6 +104,9 @@ dbRequest.onupgradeneeded = (event) => {
     // Instead, we can use the store we just created.
     // Any error would be caught by the dbRequest.onerror.
     store.add({
+        // The number key starts with 1 by default.
+        // As a real programmer counts number from 0, we specify the initial number to 0 ;)
+        id: 0,
         name: "Rin",
         email: "levelrin@gmail.com"
     });
@@ -126,7 +129,7 @@ dbRequest.onupgradeneeded = (event) => {
     const store = db.createObjectStore("users", { keyPath: "id", autoIncrement: true });
     store.createIndex("name", "name", { unique: false });
     store.createIndex("email", "email", { unique: true });
-    store.add({ name: "Rin", email: "levelrin@gmail.com" });
+    store.add({ id: 0, name: "Rin", email: "levelrin@gmail.com" });
 }
 dbRequest.onsuccess = (event) => {
     const db = event.target.result;
@@ -175,7 +178,7 @@ dbRequest.onupgradeneeded = (event) => {
     const store = db.createObjectStore("users", { keyPath: "id", autoIncrement: true });
     store.createIndex("name", "name", { unique: false });
     store.createIndex("email", "email", { unique: true });
-    store.add({ name: "Rin", email: "levelrin@gmail.com" });
+    store.add({ id: 0, name: "Rin", email: "levelrin@gmail.com" });
 }
 dbRequest.onsuccess = (event) => {
     const db = event.target.result;
@@ -213,7 +216,7 @@ dbRequest.onupgradeneeded = (event) => {
     const store = db.createObjectStore("users", { keyPath: "id", autoIncrement: true });
     store.createIndex("name", "name", { unique: false });
     store.createIndex("email", "email", { unique: true });
-    store.add({ name: "Rin", email: "levelrin@gmail.com" });
+    store.add({ id: 0, name: "Rin", email: "levelrin@gmail.com" });
 }
 dbRequest.onsuccess = (event) => {
     const db = event.target.result;
