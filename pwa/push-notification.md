@@ -85,6 +85,13 @@ if ("serviceWorker" in navigator) {
     }).then((subscription) => {
         console.log("Subscription JSON:", JSON.stringify(subscription));
     });
+    // Print the payload of the push notification.
+    navigator.serviceWorker.addEventListener("message", (event) => {
+        if (event.data && event.data.type === "PUSH_NOTIFICATION") {
+            const jsonPayload = event.data.data;
+            console.log("Received a push notification. title: " + jsonPayload.title + ", body: " + jsonPayload.body);
+        }
+    });
 } else {
     console.log('Using a service worker is unavailable.');
 }
@@ -116,18 +123,26 @@ self.addEventListener("push", (event) => {
     // Retrieve the textual payload from event.data (a PushMessageData object).
     // Other formats are supported (ArrayBuffer, Blob, JSON), check out the documentation
     // on https://developer.mozilla.org/en-US/docs/Web/API/PushMessageData.
-    const payload = event.data ? event.data.text() : 'no payload';
+    const payload = event.data ? event.data.text() : "no payload";
     console.log("Push event payload:", payload);
     const jsonPayload = JSON.parse(payload);
     // Keep the service worker alive until the notification is created.
     event.waitUntil(
-        // This method determines how the push notification is displayed to the user.
-        self.registration.showNotification(
-            jsonPayload.title,
-            {
-                body: jsonPayload.body,
-            }
-        )
+        self.clients.matchAll({ includeUncontrolled: true }).then((allClients) => {
+            // Send the push notification content to the web apps so they can show it.
+            allClients.forEach((client) => {
+                client.postMessage({
+                    type: "PUSH_NOTIFICATION",
+                    data: jsonPayload
+                });
+            });
+        }).finally(() => {
+            // Always show the notification, even if no clients are open.
+            return self.registration.showNotification(
+                jsonPayload.title,
+                { body: jsonPayload.body }
+            );
+        })
     );
 });
 ```
