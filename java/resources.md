@@ -33,3 +33,26 @@ final public class Main {
 
 }
 ```
+
+## Check if resource exists
+
+```java
+package com.levelrin;
+
+import java.net.URL;
+
+final public class Main {
+
+    public static void main(final String... args) {
+        final String resourcePath = "static/index.html";
+        final ClassLoader classLoader = Main.class.getClassLoader();
+        final URL resourceUrl = classLoader.getResource(resourcePath);
+        if (resourceUrl == null) {
+            System.out.println("Resource not found :(");
+        } else {
+            System.out.println("Resource found!");
+        }
+    }
+
+}
+```
