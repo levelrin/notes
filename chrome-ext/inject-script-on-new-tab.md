@@ -73,25 +73,20 @@ window.onload = () => {
 
 This is the `background.js`:
 ```js
-const tabIds = new Set();
-
-chrome.runtime.onMessage.addListener((message, __, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, __, ___) => {
     if (message.about === "search") {
-        chrome.tabs.create({
-            url: "https://www.google.com"
-        }).then((tab) => {
-            tabIds.add(tab.id);
-        });
-    }
-});
-
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, ___) => {
-    if (tabIds.has(tabId) && changeInfo.status === "complete") {
-        chrome.scripting.executeScript({
-            target: { tabId: tabId },
-            files: ["scripts/search.js"]
-        }).then(() => {
-            tabIds.delete(tabId);
+        chrome.tabs.create({url: "https://www.google.com"}).then((tab) => {
+            const listener = (tabId, changeInfo) => {
+                if (tabId === tab.id && changeInfo.status === 'complete') {
+                    // Once this listener is executed, remove it to avoid duplicated registration.
+                    chrome.tabs.onUpdated.removeListener(listener);
+                    chrome.scripting.executeScript({
+                        target: {tabId: tab.id},
+                        files: ["scripts/search.js"]
+                    });
+                }
+            };
+            chrome.tabs.onUpdated.addListener(listener);
         });
     }
 });
