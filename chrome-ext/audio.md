@@ -31,10 +31,11 @@ The important part is `"permissions": ["offscreen"]`.
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Popup</title>
 </head>
 <body>
-<button type="button" id="button">Click Me!</button>
+<button type="button" id="okay">Okay</button>
+<button type="button" id="fahhh">Fahhh</button>
 <script src="popup.js"></script>
 </body>
 </html>
@@ -45,11 +46,19 @@ The important part is `"permissions": ["offscreen"]`.
 `popup/popup.js`:
 ```js
 window.onload = () => {
-    const button = document.getElementById("button");
-    button.onclick = () => {
+    const okay = document.getElementById("okay");
+    okay.onclick = () => {
         // Message to `background.js`.
         chrome.runtime.sendMessage({
-            about: "triggerAudio"
+            about: "triggerAudio",
+            audioId: "okay"
+        });
+    }
+    const fahhh = document.getElementById("fahhh");
+    fahhh.onclick = () => {
+        chrome.runtime.sendMessage({
+            about: "triggerAudio",
+            audioId: "fahhh"
         });
     }
 }
@@ -59,27 +68,26 @@ window.onload = () => {
 
 `background.js`:
 ```js
+async function ensureOffscreen() {
+    if (await chrome.offscreen.hasDocument()) {
+        return;
+    }
+    // We can create only one offscreen.
+    await chrome.offscreen.createDocument({
+        url: "offscreen/offscreen.html",
+        reasons: ["AUDIO_PLAYBACK"],
+        justification: "To play audio."
+    });
+}
 chrome.runtime.onMessage.addListener((message, __, ___) => {
     if (message.about === "triggerAudio") {
-        const audioUrl = "audio/audio.html";
-        chrome.runtime.getContexts({
-            contextTypes: ["OFFSCREEN_DOCUMENT"],
-            documentUrls: [chrome.runtime.getURL(audioUrl)]
-        }).then((contexts) => {
-            if (contexts.length > 0) {
-                // Message to `audio.js`.
-                // Note that `chrome.runtime.sendMessage` is the broadcast (not only for the background process).
-                chrome.runtime.sendMessage({
-                    about: "playAudio"
-                });
-            } else {
-                // Load `audio.html` if not already.
-                chrome.offscreen.createDocument({
-                    url: audioUrl,
-                    reasons: ["AUDIO_PLAYBACK"],
-                    justification: "To play audio."
-                });
-            }
+        ensureOffscreen().then(() => {
+            // Message to `offscreen.js`.
+            // Note that `chrome.runtime.sendMessage` is the broadcast (not only for the background process).
+            chrome.runtime.sendMessage({
+                about: "playAudio",
+                audioId: message.audioId
+            });
         });
     }
 });
@@ -87,36 +95,34 @@ chrome.runtime.onMessage.addListener((message, __, ___) => {
 
 ---
 
-`audio/audio.html`:
+`offscreen/offscreen.html`:
 ```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Audio</title>
+    <title>Offscreen</title>
 </head>
 <body>
-<audio controls id="okay" src="okay.mp3"></audio>
-<script src="audio.js"></script>
+<audio id="okay" src="/audio/okay.mp3"></audio>
+<audio id="fahhh" src="/audio/fahhh.mp3"></audio>
+<script src="offscreen.js"></script>
 </body>
 </html>
 ```
 
-The `okay.mp3` file is at `audio/okay.mp3`.
-
 ---
 
-`audio/audio.js`:
+`offscreen/offscreen.js`:
 ```js
 window.onload = () => {
-    const okay = document.getElementById("okay");
     chrome.runtime.onMessage.addListener((message, __, ___) => {
         if (message.about === "playAudio") {
-            // Play the audio from the message when the page has been loaded already.
-            okay.play();
+            const audio = document.getElementById(message.audioId);
+            audio.pause();
+            audio.currentTime = 0;
+            audio.play();
         }
     });
-    // Play the audio when the page is loaded initially.
-    okay.play();
 }
 ```
