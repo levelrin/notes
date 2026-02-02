@@ -92,3 +92,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 ```
+
+In this example, we use `storage.sync`.
+
+However, we can also use `storage.local` or `storage.session` without changing method calls because they all have the same interface (methods).
+
+The `storage.sync` is good for storing user preferences because:
+ - The data is shared across all devices as long as the user is signed in to the same account.
+ - The data is preserved even after the browser reboot.
+ - It has the lowest quota (~100KB total).
+
+The `storage.local` is good for general persistent data because:
+ - The data is preserved even after the browser reboot.
+ - It has a larger quota (around 10 MB, but it can be increased by requesting the "unlimitedStorage" permission).
+ - The data is not shared across devices (only for that browser).
+
+The `storage.session` is good for temporary workflows because:
+ - The data is cleared when the browser is closed.
+ - The data is not shared across devices.
+ - It has a larger quota (around 10 MB).
