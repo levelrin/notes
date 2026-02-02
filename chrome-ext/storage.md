@@ -32,7 +32,6 @@ This is the `popup/popup.html`:
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
-    <link rel="stylesheet" href="popup.css">
 </head>
 <body>
 <h1>Count: <span id="count">0</span></h1>
