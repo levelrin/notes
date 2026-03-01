@@ -12,3 +12,9 @@ echo -ne '1\n1\n\n' | sh install.sh
 `-n`: Do not output a trailing newline.
 
 `-e`: Enable interpretation of the following backslash-escaped characters in each String, such as `\n`.
+
+## Check OS version
+
+```sh
+cat /etc/os-release
+```
