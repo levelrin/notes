@@ -1,7 +1,16 @@
 ## Start a new container and be ready to execute commands in there
 
+Run a container directly:
 ```sh
 docker run --rm --name c1 -it ubuntu:23.04 /bin/bash
+```
+
+Run a container via `docker-compose.yml`:
+```yml
+services:
+  sandbox:
+    image: "debian:trixie-slim"
+    command: ["sleep", "infinity"]
 ```
 
 ## ssh into a container
