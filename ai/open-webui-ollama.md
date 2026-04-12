@@ -13,12 +13,24 @@ We may want to run Ollama and Open WebUI separately.
 
 For example, the bundled Ollama might not be up-to-date.
 
+### WSL
+
+To enable the Nvidia GPU, the [NVIDIA Container Toolkit](https://github.com/NVIDIA/nvidia-container-toolkit) should be installed in WSL.
+
+Please check the installation guide from [here](https://hub.docker.com/r/ollama/ollama).
+
+After the installation, we can confirm by running the `nvidia-smi` command whether the GPU shows up.
+
 We can use `docker-compose.yml` like this:
 ```yml
 services:
   ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.20.5
     container_name: ollama
+    tty: true
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     deploy:
       resources:
         reservations:
@@ -30,7 +42,7 @@ services:
       - ./ollama:/root/.ollama
 
   open-webui:
-    image: ghcr.io/open-webui/open-webui:main
+    image: ghcr.io/open-webui/open-webui:git-92dfa3f-cuda
     container_name: open-webui
     ports:
       - "3000:8080"
@@ -41,3 +53,8 @@ services:
     depends_on:
       - ollama
 ```
+
+To confirm the GPU usage, do the following:
+1. Initiate a chat, which will initiate the model. Make sure the model has finished replying.
+2. Get into the Ollama container: `docker exec -it ollama /bin/bash`.
+3. Run `ollama ps`. The `PROCESSOR` column should show the GPU usage.
