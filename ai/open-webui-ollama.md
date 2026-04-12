@@ -58,3 +58,26 @@ To confirm the GPU usage, do the following:
 1. Initiate a chat, which will initiate the model. Make sure the model has finished replying.
 2. Get into the Ollama container: `docker exec -it ollama /bin/bash`.
 3. Run `ollama ps`. The `PROCESSOR` column should show the GPU usage.
+
+### Apple Silicon
+
+Unfortunately, Docker on macOS does not support GPU passthrough for Apple Silicon (Metal).
+
+To enable the GPU, we have to run Ollama as a native macOS application rather than inside a container.
+
+We can at least run Open WebUI using Docker Compose like this:
+```yml
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:git-92dfa3f
+    container_name: open-webui
+    ports:
+      - "3000:8080"
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./open-webui:/app/backend/data
+    restart: always
+```
