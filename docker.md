@@ -16,7 +16,7 @@ services:
 ## ssh into a container
 
 ```sh
-docker container exec -it c1 /bin/bash
+docker exec -it c1 /bin/bash
 ```
 
 ## Expose port on a running container
