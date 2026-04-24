@@ -14,3 +14,10 @@ To enable this kind of progressive function calls, we need the following configu
 Changing it to native mode would allow the model to call the function directly without generating output, preventing AI from stopping until it has enough information to generate the answer.
 
 It's essentially the agentic mode for Open WebUI.
+
+## Skills
+
+I noticed that it's quite difficult to make AI use skills.
+
+A system prompt like this increased the chance of using skills:
+> If there are relevant skills, you must use the `view_skill` function to read them first before doing anything else.
