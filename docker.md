@@ -75,3 +75,14 @@ The container `c2` can use `c1` as a hostname to send a request like this:
 ```sh
 curl http://c1:4321
 ```
+
+## Monitor Logs
+
+We can monitor the `stdout` and `stderr` from the running container in real time like this:
+```sh
+docker logs -f --tail 100 container-name
+```
+
+`-f` stands for following.
+
+`--tail 100` makes it "Only show me the most recent 100 lines, then start following the live feed."
