@@ -17,7 +17,9 @@ It's essentially the agentic mode for Open WebUI.
 
 ## Skills
 
-I noticed that it's quite difficult to make AI use skills.
+I noticed that it's quite difficult to make AI use [skills](https://docs.openwebui.com/features/workspace/skills/).
+
+Mentioning the skill with the `$` sign just makes it available, but it's up to the model to decide whether to use it or not.
 
 A system prompt like this increased the chance of using skills:
 > If there are relevant skills, you must use the `view_skill` function to read them first before doing anything else.
