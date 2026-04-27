@@ -5,7 +5,7 @@ It's about [docker-chromium](https://github.com/jlesage/docker-chromium).
 ## Quick Start
 
 ```sh
-docker run --rm --name=chromium -p 5800:5800 -e INSTALL_PACKAGES="font-noto-cjk" -e ENABLE_CJK_FONT=1 -e WEB_AUDIO=1 -v $(pwd)/chromium:/config:rw ghcr.io/jlesage/chromium:v26.03.2
+docker run --rm --name=chromium -p 5800:5800 -e ENABLE_CJK_FONT=1 -e WEB_AUDIO=1 -v $(pwd)/chromium:/config:rw ghcr.io/jlesage/chromium:v26.03.2
 ```
 
 We can access the browser via http://localhost:5800.
@@ -14,12 +14,7 @@ We can access the browser via http://localhost:5800.
 Although the browser is now able to output audio (power given), it's off by default.
 The user needs to click the hamburger menu on the left to expand the settings and turn on the audio and its volume.
 
-`-e INSTALL_PACKAGES="font-noto-cjk"` installs East Asian fonts, such as Chinese, Japanese, and Korean.
-
-`-e ENABLE_CJK_FONT=1` makes the system prioritize the East Asian fonts.
-
-The command installs packages every time we run.
-Making a local image and reusing it would be efficient.
+`-e ENABLE_CJK_FONT=1"` installs East Asian fonts, such as Chinese, Japanese, and Korean.
 
 Known Issue:
 I was able to type English only.
