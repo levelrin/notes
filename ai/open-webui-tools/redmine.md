@@ -55,7 +55,7 @@ class Tools:
             parent_id: int = None,
     ) -> str:
         """
-        Fetches issues from Redmine and returns a raw JSON string or an error message.
+        Fetches a list of issues from Redmine and returns a raw JSON string or an error message.
 
         :param offset: the offset of the first object to retrieve.
         :param limit: the number of items to be present in the response (default is 25, maximum is 100).
@@ -86,6 +86,42 @@ class Tools:
         if status_id: query_params["status_id"] = status_id
         if assigned_to_id: query_params["assigned_to_id"] = assigned_to_id
         if parent_id: query_params["parent_id"] = parent_id
+        try:
+            response = requests.get(url, headers=self._common_http_headers(), params=query_params)
+            if response.status_code == 200:
+                return response.text
+            else:
+                return f"Error {response.status_code}: {response.reason} - {response.text}"
+        except requests.exceptions.RequestException as e:
+            return f"Connection Error: {str(e)}"
+
+    def issue(
+            self,
+            issue_id: int,
+            include: str = None,
+    ) -> str:
+        """
+        Fetches the information of the target issue from Redmine and returns a raw JSON string or an error message.
+
+        :param issue_id: the ID of the target issue.
+        :param include: fetch associated data (optional, use comma to fetch multiple associations). Possible values:
+                * children
+                * attachments
+                * relations
+                * changesets
+                * journals
+                * watchers - Since 2.3.0
+                * allowed_statuses - Since 5.0.x, Returns the available allowed statuses (the same values as provided in the issue edit form) based on:
+                    * the issue's current tracker, the issue's current status, and the member's role (the defined workflow);
+                    * the existence of any open subtask(s);
+                    * the existence of any open blocking issue(s);
+                    * the existence of a closed parent issue.
+
+        :return: Redmine issue.
+        """
+        url = f"{self.valves.REDMINE_BASE_URL.rstrip('/')}/issues/{issue_id}.json"
+        query_params = {}
+        if include: query_params["include"] = include
         try:
             response = requests.get(url, headers=self._common_http_headers(), params=query_params)
             if response.status_code == 200:
@@ -206,5 +242,4 @@ class Tools:
                 return f"Error {response.status_code}: {response.reason} - {response.text}"
         except requests.exceptions.RequestException as e:
             return f"Connection Error: {str(e)}"
-
 ```
