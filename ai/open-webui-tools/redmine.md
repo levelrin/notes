@@ -7,6 +7,7 @@ Supported Features:
 * [Projects](https://www.redmine.org/projects/redmine/wiki/Rest_Projects)
 * [Time Entries](https://www.redmine.org/projects/redmine/wiki/Rest_TimeEntries)
 * [Users](https://www.redmine.org/projects/redmine/wiki/Rest_Users)
+* [Wiki Pages](https://www.redmine.org/projects/redmine/wiki/Rest_WikiPages)
 
 ## Code
 
@@ -14,6 +15,7 @@ Supported Features:
 from pydantic import BaseModel, Field
 import requests
 from typing import Dict
+import json
 
 
 class Tools:
@@ -54,8 +56,9 @@ class Tools:
             assigned_to_id: str = None,
             parent_id: int = None,
     ) -> str:
-        """
+        f"""
         Fetches a list of issues from Redmine and returns a raw JSON string or an error message.
+        It calls the `GET {self.valves.REDMINE_BASE_URL.rstrip('/')}/issues.json` endpoint.
 
         :param offset: the offset of the first object to retrieve.
         :param limit: the number of items to be present in the response (default is 25, maximum is 100).
@@ -100,8 +103,9 @@ class Tools:
             issue_id: int,
             include: str = None,
     ) -> str:
-        """
+        f"""
         Fetches the information of the target issue from Redmine and returns a raw JSON string or an error message.
+        It calls the `GET {self.valves.REDMINE_BASE_URL.rstrip('/')}/issues/{issue_id}.json` endpoint.
 
         :param issue_id: the ID of the target issue.
         :param include: fetch associated data (optional, use comma to fetch multiple associations). Possible values:
@@ -137,8 +141,9 @@ class Tools:
             limit: int = None,
             include: str = None,
     ) -> str:
-        """
+        f"""
         Fetches projects from Redmine and returns a raw JSON string or an error message.
+        It calls the `GET {self.valves.REDMINE_BASE_URL.rstrip('/')}/projects.json` endpoint.
 
         :param offset: the offset of the first object to retrieve.
         :param limit: the number of items to be present in the response (default is 25, maximum is 100).
@@ -165,7 +170,6 @@ class Tools:
         except requests.exceptions.RequestException as e:
             return f"Connection Error: {str(e)}"
 
-
     def time_entries(
             self,
             offset: int = None,
@@ -175,8 +179,9 @@ class Tools:
             spent_from: str = None,
             spent_to: str = None,
     ) -> str:
-        """
+        f"""
         Fetches time entries from Redmine and returns a raw JSON string or an error message.
+        It calls the `GET {self.valves.REDMINE_BASE_URL.rstrip('/')}/time_entries.json` endpoint.
 
         :param offset: the offset of the first object to retrieve.
         :param limit: the number of items to be present in the response (default is 25, maximum is 100).
@@ -212,8 +217,9 @@ class Tools:
             name: str = None,
             group_id: int = None,
     ) -> str:
-        """
+        f"""
         Fetches users from Redmine and returns a raw JSON string or an error message.
+        It calls the `GET {self.valves.REDMINE_BASE_URL.rstrip('/')}/users.json` endpoint.
         This endpoint requires admin privileges.
 
         :param offset: the offset of the first object to retrieve.
@@ -234,6 +240,104 @@ class Tools:
         if status: query_params["status"] = status
         if name: query_params["name"] = name
         if group_id: query_params["group_id"] = group_id
+        try:
+            response = requests.get(url, headers=self._common_http_headers(), params=query_params)
+            if response.status_code == 200:
+                return response.text
+            else:
+                return f"Error {response.status_code}: {response.reason} - {response.text}"
+        except requests.exceptions.RequestException as e:
+            return f"Connection Error: {str(e)}"
+
+    def wikis(
+            self,
+            project_identifier: str,
+            offset: int = 0,
+            limit: int = 25,
+    ) -> str:
+        f"""
+        Fetches the list of wiki pages from Redmine and returns a raw JSON string or an error message.
+        It calls the `GET {self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_identifier}/wiki/index.json` endpoint.
+        The actual API does not support pagination.
+        Since there might be too many wiki pages, it mimics Redmine-style pagination from other endpoints.
+
+        :param project_identifier: you can see this value from calling `/projects` endpoint. Each project has its identifier.
+        :param offset: the offset of the first object to retrieve.
+        :param limit: the number of items to be present in the response (default is 25, maximum is 100).
+
+        :return: Redmine wiki pages.
+        """
+        url = f"{self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_identifier}/wiki/index.json"
+        effective_limit = min(limit, 100)
+        try:
+            response = requests.get(url, headers=self._common_http_headers())
+            if response.status_code == 200:
+                all_pages = response.json().get("wiki_pages", [])
+                total_count = len(all_pages)
+                paginated_pages = all_pages[offset: offset + effective_limit]
+                result = {
+                    "wiki_pages": paginated_pages,
+                    "total_count": total_count,
+                    "offset": offset,
+                    "limit": effective_limit
+                }
+                return json.dumps(result)
+            else:
+                return f"Error {response.status_code}: {response.reason} - {response.text}"
+        except requests.exceptions.RequestException as e:
+            return f"Connection Error: {str(e)}"
+
+    def wiki(
+            self,
+            project_identifier: str,
+            title: str,
+            include: str = None,
+    ) -> str:
+        f"""
+        Fetches the wiki page from Redmine and returns a raw JSON string or an error message.
+        It calls the `GET {self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_identifier}/wiki/{title}.json` endpoint.
+
+        :param project_identifier: you can see this value from calling `/projects` endpoint. Each project has its identifier.
+        :param title: you cann see this value from calling `/projects/{project_identifier}/wiki/index.json` endpoint.
+        :param include: fetch associated data (optional, use comma to fetch multiple associations). Possible values:
+                         * attachments - Since 3.4.0
+
+        :return: Redmine wiki page.
+        """
+        url = f"{self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_identifier}/wiki/{title}.json"
+        query_params = {}
+        if include: query_params["include"] = include
+        try:
+            response = requests.get(url, headers=self._common_http_headers(), params=query_params)
+            if response.status_code == 200:
+                return response.text
+            else:
+                return f"Error {response.status_code}: {response.reason} - {response.text}"
+        except requests.exceptions.RequestException as e:
+            return f"Connection Error: {str(e)}"
+
+    def old_wiki(
+            self,
+            project_identifier: str,
+            title: str,
+            version: int,
+            include: str = None,
+    ) -> str:
+        f"""
+        Fetches the old version of the wiki page from Redmine and returns a raw JSON string or an error message.
+        It calls the `GET {self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_identifier}/wiki/{title}/{version}.json` endpoint.
+
+        :param project_identifier: you can see this value from calling `/projects` endpoint. Each project has its identifier.
+        :param title: you cann see this value from calling `/projects/{project_identifier}/wiki/index.json` endpoint.
+        :param version: the version of the wiki.
+        :param include: fetch associated data (optional, use comma to fetch multiple associations). Possible values:
+                         * attachments - Since 3.4.0
+
+        :return: The old version of the Redmine wiki page.
+        """
+        url = f"{self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_identifier}/wiki/{title}/{version}.json"
+        query_params = {}
+        if include: query_params["include"] = include
         try:
             response = requests.get(url, headers=self._common_http_headers(), params=query_params)
             if response.status_code == 200:
