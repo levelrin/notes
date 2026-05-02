@@ -51,7 +51,7 @@ class Tools:
             include: str = None,
             issue_id: str = None,
             project_id: int = None,
-            subproject_id: str = None,
+            subproject_id: int = None,
             tracker_id: int = None,
             status_id: str = None,
             assigned_to_id: str = None,
@@ -68,7 +68,7 @@ class Tools:
                          * attachments - Since 3.4.0
                          * relations
         :param issue_id: get issue with the given id or multiple issues by id using ',' to separate id.
-        :param project_id: get issues from the project with the given id (a numeric value, not a project identifier).
+        :param project_id: the project ID.
         :param subproject_id: get issues from the subproject with the given id. You can use project_id=XXX&subproject_id=!* to get only the issues of a given project and none of its subprojects.
         :param tracker_id: get issues from the tracker with the given id.
         :param status_id: get issues with the given status id only. Possible values: open, closed, * to get open and closed issues, status id.
@@ -192,7 +192,7 @@ class Tools:
             offset: int = None,
             limit: int = None,
             user_id: int = None,
-            project_id: str = None,
+            project_id: int = None,
             spent_from: str = None,
             spent_to: str = None,
     ) -> str:
@@ -203,7 +203,7 @@ class Tools:
         :param offset: the offset of the first object to retrieve.
         :param limit: the number of items to be present in the response (default is 25, maximum is 100).
         :param user_id: get time entries by the given user id.
-        :param project_id: when filtering by project id, you can use either project numeric ID or its string identifier.
+        :param project_id: the project ID.
         :param spent_from: get time entries from that date (inclusive). Format example: yyyy-mm-dd.
         :param spent_to: get time entries until that date (inclusive). Format example: yyyy-mm-dd.
 
@@ -268,23 +268,23 @@ class Tools:
 
     def wikis(
             self,
-            project_identifier: str,
+            project_id: int,
             offset: int = 0,
             limit: int = 25,
     ) -> str:
         f"""
         Fetches the list of wiki pages from Redmine and returns a raw JSON string or an error message.
-        It calls the `GET {self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_identifier}/wiki/index.json` endpoint.
+        It calls the `GET {self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_id}/wiki/index.json` endpoint.
         The actual API does not support pagination.
         Since there might be too many wiki pages, it mimics Redmine-style pagination from other endpoints.
 
-        :param project_identifier: you can see this value from calling `/projects` endpoint. Each project has its identifier.
+        :param project_id: the project ID.
         :param offset: the offset of the first object to retrieve.
         :param limit: the number of items to be present in the response (default is 25, maximum is 100).
 
         :return: Redmine wiki pages.
         """
-        url = f"{self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_identifier}/wiki/index.json"
+        url = f"{self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_id}/wiki/index.json"
         effective_limit = min(limit, 100)
         try:
             response = requests.get(url, headers=self._common_http_headers())
@@ -306,22 +306,22 @@ class Tools:
 
     def wiki(
             self,
-            project_identifier: str,
+            project_id: int,
             title: str,
             include: str = None,
     ) -> str:
         f"""
         Fetches the wiki page from Redmine and returns a raw JSON string or an error message.
-        It calls the `GET {self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_identifier}/wiki/{title}.json` endpoint.
+        It calls the `GET {self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_id}/wiki/{title}.json` endpoint.
 
-        :param project_identifier: you can see this value from calling `/projects` endpoint. Each project has its identifier.
-        :param title: you cann see this value from calling `/projects/{project_identifier}/wiki/index.json` endpoint.
+        :param project_id: the project ID.
+        :param title: you cann see this value from calling `/projects/{project_id}/wiki/index.json` endpoint.
         :param include: fetch associated data (optional, use comma to fetch multiple associations). Possible values:
                          * attachments - Since 3.4.0
 
         :return: Redmine wiki page.
         """
-        url = f"{self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_identifier}/wiki/{title}.json"
+        url = f"{self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_id}/wiki/{title}.json"
         query_params = {}
         if include: query_params["include"] = include
         try:
@@ -335,24 +335,24 @@ class Tools:
 
     def old_wiki(
             self,
-            project_identifier: str,
+            project_id: int,
             title: str,
             version: int,
             include: str = None,
     ) -> str:
         f"""
         Fetches the old version of the wiki page from Redmine and returns a raw JSON string or an error message.
-        It calls the `GET {self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_identifier}/wiki/{title}/{version}.json` endpoint.
+        It calls the `GET {self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_id}/wiki/{title}/{version}.json` endpoint.
 
-        :param project_identifier: you can see this value from calling `/projects` endpoint. Each project has its identifier.
-        :param title: you cann see this value from calling `/projects/{project_identifier}/wiki/index.json` endpoint.
+        :param project_id: the project ID.
+        :param title: you cann see this value from calling `/projects/{project_id}/wiki/index.json` endpoint.
         :param version: the version of the wiki.
         :param include: fetch associated data (optional, use comma to fetch multiple associations). Possible values:
                          * attachments - Since 3.4.0
 
         :return: The old version of the Redmine wiki page.
         """
-        url = f"{self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_identifier}/wiki/{title}/{version}.json"
+        url = f"{self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_id}/wiki/{title}/{version}.json"
         query_params = {}
         if include: query_params["include"] = include
         try:
@@ -401,7 +401,7 @@ class Tools:
         Fetches the project's news from Redmine and returns a raw JSON string or an error message.
         It calls the `GET {self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_id}/news.json` endpoint.
         
-        :param project_id: the id of the project.
+        :param project_id: the project ID.
         :param offset: the offset of the first object to retrieve.
         :param limit: the number of items to be present in the response (default is 25, maximum is 100).
 
