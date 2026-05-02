@@ -102,10 +102,14 @@ class Tools:
             self,
             issue_id: int,
             include: str = None,
+            journals_offset: int = 0,
+            journals_limit: int = 25,
     ) -> str:
         f"""
         Fetches the information of the target issue from Redmine and returns a raw JSON string or an error message.
         It calls the `GET {self.valves.REDMINE_BASE_URL.rstrip('/')}/issues/{issue_id}.json` endpoint.
+        The actual API does not support journal pagination.
+        Since there might be too many journals, it mimics Redmine-style pagination from other endpoints.
 
         :param issue_id: the ID of the target issue.
         :param include: fetch associated data (optional, use comma to fetch multiple associations). Possible values:
@@ -120,6 +124,8 @@ class Tools:
                     * the existence of any open subtask(s);
                     * the existence of any open blocking issue(s);
                     * the existence of a closed parent issue.
+        :param journals_offset: the offset of the first journal to retrieve when fetching journals with include=journal.
+        :param journals_limit: the number of journals to retrieve when fetching journals with include=journal. The default is 25, and maximum is 100.
 
         :return: Redmine issue.
         """
@@ -129,7 +135,17 @@ class Tools:
         try:
             response = requests.get(url, headers=self._common_http_headers(), params=query_params)
             if response.status_code == 200:
-                return response.text
+                response_json = response.json()
+                if "issue" in response_json and "journals" in response_json["issue"]:
+                    effective_limit = min(journals_limit, 100)
+                    all_journals = response_json["issue"]["journals"]
+                    total_journals = len(all_journals)
+                    paginated_journals = all_journals[journals_offset: journals_offset + effective_limit]
+                    response_json["issue"]["journals"] = paginated_journals
+                    response_json["issue"]["journals_total_count"] = total_journals
+                    response_json["issue"]["journals_offset"] = journals_offset
+                    response_json["issue"]["journals_limit"] = effective_limit
+                return json.dumps(response_json)
             else:
                 return f"Error {response.status_code}: {response.reason} - {response.text}"
         except requests.exceptions.RequestException as e:
