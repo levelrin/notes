@@ -8,6 +8,7 @@ Supported Features:
 * [Time Entries](https://www.redmine.org/projects/redmine/wiki/Rest_TimeEntries)
 * [Users](https://www.redmine.org/projects/redmine/wiki/Rest_Users)
 * [Wiki Pages](https://www.redmine.org/projects/redmine/wiki/Rest_WikiPages)
+* [News](https://www.redmine.org/projects/redmine/wiki/Rest_News)
 
 ## Code
 
@@ -354,6 +355,62 @@ class Tools:
         url = f"{self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_identifier}/wiki/{title}/{version}.json"
         query_params = {}
         if include: query_params["include"] = include
+        try:
+            response = requests.get(url, headers=self._common_http_headers(), params=query_params)
+            if response.status_code == 200:
+                return response.text
+            else:
+                return f"Error {response.status_code}: {response.reason} - {response.text}"
+        except requests.exceptions.RequestException as e:
+            return f"Connection Error: {str(e)}"
+
+    def news(
+            self,
+            offset: int = None,
+            limit: int = None,
+    ) -> str:
+        f"""
+        Fetches news across all projects from Redmine and returns a raw JSON string or an error message.
+        It calls the `GET {self.valves.REDMINE_BASE_URL.rstrip('/')}/news.json` endpoint.
+
+        :param offset: the offset of the first object to retrieve.
+        :param limit: the number of items to be present in the response (default is 25, maximum is 100).
+
+        :return: News across all projects in Redmine.
+        """
+        url = f"{self.valves.REDMINE_BASE_URL.rstrip('/')}/news.json"
+        query_params = {}
+        if offset: query_params["offset"] = offset
+        if limit: query_params["limit"] = limit
+        try:
+            response = requests.get(url, headers=self._common_http_headers(), params=query_params)
+            if response.status_code == 200:
+                return response.text
+            else:
+                return f"Error {response.status_code}: {response.reason} - {response.text}"
+        except requests.exceptions.RequestException as e:
+            return f"Connection Error: {str(e)}"
+
+    def project_news(
+            self,
+            project_id: int,
+            offset: int = None,
+            limit: int = None,
+    ) -> str:
+        f"""
+        Fetches the project's news from Redmine and returns a raw JSON string or an error message.
+        It calls the `GET {self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_id}/news.json` endpoint.
+        
+        :param project_id: the id of the project.
+        :param offset: the offset of the first object to retrieve.
+        :param limit: the number of items to be present in the response (default is 25, maximum is 100).
+
+        :return: The project's news in Redmine.
+        """
+        url = f"{self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_id}/news.json"
+        query_params = {}
+        if offset: query_params["offset"] = offset
+        if limit: query_params["limit"] = limit
         try:
             response = requests.get(url, headers=self._common_http_headers(), params=query_params)
             if response.status_code == 200:
