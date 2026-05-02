@@ -9,6 +9,7 @@ Supported Features:
 * [Users](https://www.redmine.org/projects/redmine/wiki/Rest_Users)
 * [Wiki Pages](https://www.redmine.org/projects/redmine/wiki/Rest_WikiPages)
 * [News](https://www.redmine.org/projects/redmine/wiki/Rest_News)
+* [Versions](https://www.redmine.org/projects/redmine/wiki/Rest_Versions)
 
 ## Code
 
@@ -285,10 +286,10 @@ class Tools:
         :return: Redmine wiki pages.
         """
         url = f"{self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_id}/wiki/index.json"
-        effective_limit = min(limit, 100)
         try:
             response = requests.get(url, headers=self._common_http_headers())
             if response.status_code == 200:
+                effective_limit = min(limit, 100)
                 all_pages = response.json().get("wiki_pages", [])
                 total_count = len(all_pages)
                 paginated_pages = all_pages[offset: offset + effective_limit]
@@ -413,6 +414,69 @@ class Tools:
         if limit: query_params["limit"] = limit
         try:
             response = requests.get(url, headers=self._common_http_headers(), params=query_params)
+            if response.status_code == 200:
+                return response.text
+            else:
+                return f"Error {response.status_code}: {response.reason} - {response.text}"
+        except requests.exceptions.RequestException as e:
+            return f"Connection Error: {str(e)}"
+
+    def versions(
+            self,
+            project_id: int,
+            offset: int = 0,
+            limit: int = 25,
+    ) -> str:
+        f"""
+        Fetches the project's versions from Redmine and returns a raw JSON string or an error message.
+        It calls the `GET {self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_id}/versions.json` endpoint.
+        The actual API does not support pagination.
+        Since there might be too many versions, it mimics Redmine-style pagination from other endpoints.
+
+        :param project_id: the project ID.
+        :param offset: the offset of the first object to retrieve.
+        :param limit: the number of items to be present in the response (default is 25, maximum is 100).
+
+        :return: The project's versions in Redmine.
+        """
+        url = f"{self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_id}/versions.json"
+        query_params = {}
+        if offset: query_params["offset"] = offset
+        if limit: query_params["limit"] = limit
+        try:
+            response = requests.get(url, headers=self._common_http_headers(), params=query_params)
+            if response.status_code == 200:
+                effective_limit = min(limit, 100)
+                all_pages = response.json().get("versions", [])
+                total_count = len(all_pages)
+                paginated_pages = all_pages[offset: offset + effective_limit]
+                result = {
+                    "versions": paginated_pages,
+                    "total_count": total_count,
+                    "offset": offset,
+                    "limit": effective_limit
+                }
+                return json.dumps(result)
+            else:
+                return f"Error {response.status_code}: {response.reason} - {response.text}"
+        except requests.exceptions.RequestException as e:
+            return f"Connection Error: {str(e)}"
+
+    def version(
+            self,
+            version_id: int
+    ) -> str:
+        f"""
+        Fetches the version information from Redmine and returns a raw JSON string or an error message.
+        It calls the `GET {self.valves.REDMINE_BASE_URL.rstrip('/')}/versions/{version_id}.json` endpoint.
+
+        :param version_id: the version ID.
+
+        :return: The version information in Redmine.
+        """
+        url = f"{self.valves.REDMINE_BASE_URL.rstrip('/')}/versions/{version_id}.json"
+        try:
+            response = requests.get(url, headers=self._common_http_headers())
             if response.status_code == 200:
                 return response.text
             else:
