@@ -10,6 +10,7 @@ Supported Features:
 * [Wiki Pages](https://www.redmine.org/projects/redmine/wiki/Rest_WikiPages)
 * [News](https://www.redmine.org/projects/redmine/wiki/Rest_News)
 * [Versions](https://www.redmine.org/projects/redmine/wiki/Rest_Versions)
+* [Search](https://www.redmine.org/projects/redmine/wiki/Rest_Search)
 
 ## Code
 
@@ -490,6 +491,85 @@ class Tools:
         url = f"{self.valves.REDMINE_BASE_URL.rstrip('/')}/versions/{version_id}.json"
         try:
             response = requests.get(url, headers=self._common_http_headers())
+            if response.status_code == 200:
+                return response.text
+            else:
+                return f"Error {response.status_code}: {response.reason} - {response.text}"
+        except requests.exceptions.RequestException as e:
+            return f"Connection Error: {str(e)}"
+
+    def search(
+            self,
+            q: str,
+            project_id: int = None,
+            offset: int = None,
+            limit: int = None,
+            scope: str = None,
+            all_words: bool = None,
+            titles_only: bool = None,
+            issues: bool = None,
+            news: bool = None,
+            documents: bool = None,
+            changesets: bool = None,
+            wiki_pages: bool = None,
+            messages: bool = None,
+            projects: bool = None,
+            open_issues: bool = None,
+            attachments: str = None,
+    ) -> str:
+        f"""
+        Searches Redmine resources and returns a raw JSON string or an error message.
+        It calls the `GET {self.valves.REDMINE_BASE_URL.rstrip('/')}/search.json` endpoint.
+
+        :param q: query strings. enable to specify multiple values separated by a space " ".
+        :param project_id: optional project ID to search within.
+        :param offset: the offset of the first object to retrieve.
+        :param limit: the number of items to be present in the response (default is 25, maximum is 100).
+        :param scope: search scope condition: 
+                       * 'all': search all projects.
+                       * 'my_project': search assigned projects.
+                       * 'subprojects': include subproject when project spacified.
+        :param all_words: matched all query strings or not.
+        :param titles_only: matched only title or not.
+        :param issues: include Issues or not.
+        :param news: include News or not.
+        :param documents: include Documents or not.
+        :param changesets: include Changesets or not.
+        :param wiki_pages: include Wiki Pages or not.
+        :param messages: include Messages or not.
+        :param projects: include Projects or not.
+        :param open_issues: filtered by open issues.
+        :param attachments: '0': search only in description, '1': search by description and attachment, 'only': search only in attachment.
+
+        :return: Redmine search results.
+        """
+        url = f"{self.valves.REDMINE_BASE_URL.rstrip('/')}/search.json"
+        if project_id:
+            url = f"{self.valves.REDMINE_BASE_URL.rstrip('/')}/projects/{project_id}/search.json"
+        query_params = {"q": q}
+        if offset: query_params["offset"] = offset
+        if limit: query_params["limit"] = limit
+        if scope: query_params["scope"] = scope
+        if attachments: query_params["attachments"] = attachments
+        mapping = {
+            "all_words": all_words,
+            "titles_only": titles_only,
+            "issues": issues,
+            "news": news,
+            "documents": documents,
+            "changesets": changesets,
+            "wiki_pages": wiki_pages,
+            "messages": messages,
+            "projects": projects,
+            "open_issues": open_issues,
+        }
+        for key, value in mapping.items():
+            if value:
+                query_params[key] = "1"
+            elif value is False:
+                query_params[key] = "0"
+        try:
+            response = requests.get(url, headers=self._common_http_headers(), params=query_params)
             if response.status_code == 200:
                 return response.text
             else:
