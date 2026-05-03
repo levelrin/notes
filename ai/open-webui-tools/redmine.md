@@ -426,6 +426,7 @@ class Tools:
             project_id: int,
             offset: int = 0,
             limit: int = 25,
+            status: str | list[str] = "open",
     ) -> str:
         f"""
         Fetches the project's versions from Redmine and returns a raw JSON string or an error message.
@@ -436,6 +437,9 @@ class Tools:
         :param project_id: the project ID.
         :param offset: the offset of the first object to retrieve.
         :param limit: the number of items to be present in the response (default is 25, maximum is 100).
+        :param status: filter by version status. Default is 'open'. 
+                       Possible values: 'open', 'locked', 'closed', or 'all'.
+                       Can also be a list, e.g., ['open', 'locked'].
 
         :return: The project's versions in Redmine.
         """
@@ -446,12 +450,21 @@ class Tools:
         try:
             response = requests.get(url, headers=self._common_http_headers(), params=query_params)
             if response.status_code == 200:
+                all_versions = response.json().get("versions", [])
+                if status != "all":
+                    if isinstance(status, str):
+                        status_filters = [status.lower()]
+                    else:
+                        status_filters = [each_status.lower() for each_status in status]
+                    all_versions = [
+                        version for version in all_versions
+                        if version.get("status") in status_filters
+                    ]
+                total_count = len(all_versions)
                 effective_limit = min(limit, 100)
-                all_pages = response.json().get("versions", [])
-                total_count = len(all_pages)
-                paginated_pages = all_pages[offset: offset + effective_limit]
+                paginated_versions = all_versions[offset: offset + effective_limit]
                 result = {
-                    "versions": paginated_pages,
+                    "versions": paginated_versions,
                     "total_count": total_count,
                     "offset": offset,
                     "limit": effective_limit
