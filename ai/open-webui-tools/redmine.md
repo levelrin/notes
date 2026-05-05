@@ -31,7 +31,7 @@ class Tools:
             default="", description="Your Redmine API Access Key."
         )
         MAX_RESPONSE_SIZE: int = Field(
-            default=35000, description="The response from the Redmine API can be too large for the model. This valve sets the maximum response size (in characters) that will be returned to the model. If the API response exceeds this size, it will return an error message suggesting limiting the size of the page."
+            default=67000, description="The response from the Redmine API can be too large for the model. This valve sets the maximum response size (in characters) that will be returned to the model. If the API response exceeds this size, it will return an error message suggesting limiting the size of the page."
         )
 
     def __init__(self):
@@ -70,6 +70,7 @@ class Tools:
             status_id: str = None,
             assigned_to_id: str = None,
             parent_id: int = None,
+            fixed_version_id: int = None,
     ) -> str:
         f"""
         Fetches a list of issues from Redmine and returns a raw JSON string or an error message.
@@ -88,6 +89,7 @@ class Tools:
         :param status_id: get issues with the given status id only. Possible values: open, closed, * to get open and closed issues, status id.
         :param assigned_to_id: get issues which are assigned to the given user id. me can be used instead an ID to fetch all issues from the logged in user (via API key or HTTP auth).
         :param parent_id: get issues whose parent issue is given id.
+        :param fixed_version_id: get issues whose version number is given by the given version id.
 
         :return: Redmine issues.
         """
@@ -104,6 +106,7 @@ class Tools:
         if status_id: query_params["status_id"] = status_id
         if assigned_to_id: query_params["assigned_to_id"] = assigned_to_id
         if parent_id: query_params["parent_id"] = parent_id
+        if fixed_version_id: query_params["fixed_version_id"] = fixed_version_id
         try:
             response = requests.get(url, headers=self._common_http_headers(), params=query_params)
             if response.status_code == 200:
