@@ -30,6 +30,9 @@ class Tools:
         REDMINE_API_KEY: str = Field(
             default="", description="Your Redmine API Access Key."
         )
+        MAX_RESPONSE_SIZE: int = Field(
+            default=35000, description="The response from the Redmine API can be too large for the model. This valve sets the maximum response size (in characters) that will be returned to the model. If the API response exceeds this size, it will return an error message suggesting limiting the size of the page."
+        )
 
     def __init__(self):
         self.valves = self.Valves()
@@ -44,6 +47,15 @@ class Tools:
             "X-Redmine-API-Key": self.valves.REDMINE_API_KEY,
             "Content-Type": "application/json",
         }
+
+    def _validate_return_size(self, return_value: str) -> str:
+        f"""
+        Check whether the return size is too large or not.
+        If the return value exceeds {self.valves.MAX_RESPONSE_SIZE}, it will return an error message.
+        """
+        if len(return_value) > self.valves.MAX_RESPONSE_SIZE:
+            return "Error: the response from Redmine API is too large to be processed. Please limit the size of the page by using pagination parameters such as offset and limit, or by filtering the results with specific conditions."
+        return return_value
 
     def issues(
             self,
@@ -95,7 +107,7 @@ class Tools:
         try:
             response = requests.get(url, headers=self._common_http_headers(), params=query_params)
             if response.status_code == 200:
-                return response.text
+                return self._validate_return_size(response.text)
             else:
                 return f"Error {response.status_code}: {response.reason} - {response.text}"
         except requests.exceptions.RequestException as e:
@@ -148,7 +160,7 @@ class Tools:
                     response_json["issue"]["journals_total_count"] = total_journals
                     response_json["issue"]["journals_offset"] = journals_offset
                     response_json["issue"]["journals_limit"] = effective_limit
-                return json.dumps(response_json)
+                return self._validate_return_size(json.dumps(response_json))
             else:
                 return f"Error {response.status_code}: {response.reason} - {response.text}"
         except requests.exceptions.RequestException as e:
@@ -183,7 +195,7 @@ class Tools:
         try:
             response = requests.get(url, headers=self._common_http_headers(), params=query_params)
             if response.status_code == 200:
-                return response.text
+                return self._validate_return_size(response.text)
             else:
                 return f"Error {response.status_code}: {response.reason} - {response.text}"
         except requests.exceptions.RequestException as e:
@@ -222,7 +234,7 @@ class Tools:
         try:
             response = requests.get(url, headers=self._common_http_headers(), params=query_params)
             if response.status_code == 200:
-                return response.text
+                return self._validate_return_size(response.text)
             else:
                 return f"Error {response.status_code}: {response.reason} - {response.text}"
         except requests.exceptions.RequestException as e:
@@ -262,7 +274,7 @@ class Tools:
         try:
             response = requests.get(url, headers=self._common_http_headers(), params=query_params)
             if response.status_code == 200:
-                return response.text
+                return self._validate_return_size(response.text)
             else:
                 return f"Error {response.status_code}: {response.reason} - {response.text}"
         except requests.exceptions.RequestException as e:
@@ -300,7 +312,7 @@ class Tools:
                     "offset": offset,
                     "limit": effective_limit
                 }
-                return json.dumps(result)
+                return self._validate_return_size(json.dumps(result))
             else:
                 return f"Error {response.status_code}: {response.reason} - {response.text}"
         except requests.exceptions.RequestException as e:
@@ -387,7 +399,7 @@ class Tools:
         try:
             response = requests.get(url, headers=self._common_http_headers(), params=query_params)
             if response.status_code == 200:
-                return response.text
+                return self._validate_return_size(response.text)
             else:
                 return f"Error {response.status_code}: {response.reason} - {response.text}"
         except requests.exceptions.RequestException as e:
@@ -416,7 +428,7 @@ class Tools:
         try:
             response = requests.get(url, headers=self._common_http_headers(), params=query_params)
             if response.status_code == 200:
-                return response.text
+                return self._validate_return_size(response.text)
             else:
                 return f"Error {response.status_code}: {response.reason} - {response.text}"
         except requests.exceptions.RequestException as e:
@@ -470,7 +482,7 @@ class Tools:
                     "offset": offset,
                     "limit": effective_limit
                 }
-                return json.dumps(result)
+                return self._validate_return_size(json.dumps(result))
             else:
                 return f"Error {response.status_code}: {response.reason} - {response.text}"
         except requests.exceptions.RequestException as e:
@@ -571,7 +583,7 @@ class Tools:
         try:
             response = requests.get(url, headers=self._common_http_headers(), params=query_params)
             if response.status_code == 200:
-                return response.text
+                return self._validate_return_size(response.text)
             else:
                 return f"Error {response.status_code}: {response.reason} - {response.text}"
         except requests.exceptions.RequestException as e:
