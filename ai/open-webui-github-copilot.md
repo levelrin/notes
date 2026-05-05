@@ -1,3 +1,5 @@
+## Bridge Approach
+
 Unfortunately, [GitHub Copilot](https://github.com/copilot) doesn't support [OpenAI API](https://openai.com/api/) out of the box.
 
 For that reason, we need to run a proxy server (bridge server) to make Copilot available as an OpenAI API server.
@@ -38,3 +40,22 @@ services:
     depends_on:
       - copilot-bridge
 ```
+
+## With Personal Access Token
+
+Here is another approach without using the bridge.
+
+However, we tested this approach only with the personal free-tier account, while the bridge approach was confirmed with the GitHub Copilot Business account.
+
+Here are the steps:
+1. Go to the [personal access tokens settings](https://github.com/settings/personal-access-tokens) and click the `Generate new token` button.
+2. Click the `Add permissions` and select the `Models`. Configure the rest on your own and generate the token.
+3. Go to Open WebUI.
+4. Go to `Settings`.
+5. Go to `Admin Settings`.
+6. Go to `Connections` and click the `Add Connection` button.
+7. Ensure the `Provider Type` is `OpenAI`.
+8. In the `URL` section, put https://models.inference.ai.azure.com
+9. In the `Auth` section (Bearer is selected), put the GitHub personal access token.
+10. Put the model ID (ex: gpt-4.1) and add it. We can check available models from [here](https://github.com/marketplace/models).
+11. Save.
