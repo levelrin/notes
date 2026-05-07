@@ -111,3 +111,13 @@ curl -v -k http://localhost:9222/json/version
 ```
 
 You should get `200 OK`.
+
+Note that the remote debugging port is only accessible via localhost or the IP address due to Chromium's security policy.
+
+If you try to access it from a different container like `http://chromium:9222/json/version`, it will fail with the following error:
+> Host header is specified and is not an IP address or localhost.
+
+There are some workarounds:
+ - If you have control over the HTTP client, you can set the host header to localhost or just use the IP address. Ex: `Host: localhost:9222` or `Host: <IP>:9222`.
+ - Use the host network in Docker setup.
+ - Use the sidecar pattern, which means other containers use the same network as the Chromium container.
