@@ -27,16 +27,18 @@ project-name/
    "name":"Friendly Automator",
    "description":"Automate your tasks.",
    "icons":{
-      "16":"images/icons/icon-16.png",
-      "32":"images/icons/icon-32.png",
-      "48":"images/icons/icon-48.png",
-      "128":"images/icons/icon-128.png"
+      "16":"images/icons/icon16.png",
+      "32":"images/icons/icon32.png",
+      "48":"images/icons/icon48.png",
+      "128":"images/icons/icon128.png"
    },
    "action":{
       "default_popup":"popup/popup.html"
    }
 }
 ```
+
+We can use [this](https://alexleybourne.github.io/chrome-extension-icon-generator/) to generate icons of various sizes.
 
 ## Popup
 
