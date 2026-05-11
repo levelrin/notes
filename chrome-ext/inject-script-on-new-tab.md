@@ -1,7 +1,7 @@
 When the button on the `popup/popup.html` is clicked, the following will happen:
 1. Visit https://www.google.com on a new tab.
-2. Type "test" on the search bar.
-3. Press enter to see the search result.
+2. Type "test" in the search bar.
+3. Press Enter to see the search result.
 
 This is the `manifest.json`:
 ```json
@@ -73,21 +73,39 @@ window.onload = () => {
 
 This is the `background.js`:
 ```js
-chrome.runtime.onMessage.addListener((message, __, ___) => {
+const activeTabsUpdateListeners = {};
+function removeListener(tabId) {
+    if (activeTabsUpdateListeners[tabId]) {
+        chrome.tabs.onUpdated.removeListener(activeTabsUpdateListeners[tabId]);
+        delete activeTabsUpdateListeners[tabId];
+    }
+};
+function injectJs(currentTabId, scriptLocation) {
+    const listener = (tabId, changeInfo) => {
+        if (tabId === currentTabId && changeInfo.status === "complete") {
+            // Once this listener is executed, remove it to avoid duplicated registration.
+            removeListener(tabId);
+            chrome.scripting.executeScript({
+                target: {tabId: currentTabId},
+                files: [scriptLocation]
+            });
+        }
+    };
+    activeTabsUpdateListeners[currentTabId] = listener;
+    chrome.tabs.onUpdated.addListener(listener);
+}
+// Although listeners are supposed to remove themselves, they may fail.
+// For such a case, we ensure to remove them by this logic to prevent memory leaks.
+chrome.tabs.onRemoved.addListener((tabId) => {
+    removeListener(tabId);
+});
+chrome.runtime.onMessage.addListener((message, sender, ___) => {
     if (message.about === "search") {
         chrome.tabs.create({url: "https://www.google.com"}).then((tab) => {
-            const listener = (tabId, changeInfo) => {
-                if (tabId === tab.id && changeInfo.status === 'complete') {
-                    // Once this listener is executed, remove it to avoid duplicated registration.
-                    chrome.tabs.onUpdated.removeListener(listener);
-                    chrome.scripting.executeScript({
-                        target: {tabId: tab.id},
-                        files: ["scripts/search.js"]
-                    });
-                }
-            };
-            chrome.tabs.onUpdated.addListener(listener);
+            injectJs(tab.id, "scripts/search.js");
         });
+    } else if (message.about === "prepareAfterSearch") {
+        injectJs(sender.tab.id, "scripts/afterSearch.js");
     }
 });
 ```
@@ -97,14 +115,25 @@ This is the `scripts/search.js`:
 const textarea = document.getElementsByTagName("textarea")[0];
 textarea.value = "test";
 
-// Create a KeyboardEvent for pressing Enter.
-textarea.dispatchEvent(
-    new KeyboardEvent('keydown', {
-        key: 'Enter',
-        code: 'Enter',
-        keyCode: 13,
-        which: 13,
-        bubbles: true
-    })
-);
+// Before we hit enter, we should add a listener to inject JS after the page reload.
+// It's important to note that the code in here is only effective in the current URL.
+chrome.runtime.sendMessage({about: "prepareAfterSearch"}).then(() => {
+    // Create a KeyboardEvent for pressing Enter.
+    textarea.dispatchEvent(
+        new KeyboardEvent('keydown', {
+            key: "Enter",
+            code: "Enter",
+            keyCode: 13,
+            which: 13,
+            bubbles: true
+        })
+    );
+    // Once we hit enter, a new page will be loaded.
+    // So, it would be meaningless to write further code below.
+});
+```
+
+This is the `scripts/afterSearch.js`:
+```js
+console.log("Search Done!");
 ```
