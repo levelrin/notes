@@ -13,7 +13,7 @@ services:
     image: ghcr.io/yuchanns/copilot-openai-api:v0.1.11
     container_name: copilot-bridge
     environment:
-      # To get the token, you need to sign in to any native GitHub Copilot on your machine, such as the Copilot plugin on IntelliJ or VS Code.
+      # To get the token, you need to sign in to any native GitHub Copilot on your machine, such as the Copilot plugin on IntelliJ.
       # Once you complete the authentication, you need to check the configuration file created by the plugin.
       # Usually, it's located at `~/.config/github-copilot/` in Linux and mac.
       # The token is written in `apps.json` or `hosts.json`.
