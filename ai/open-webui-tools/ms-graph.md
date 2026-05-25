@@ -7,6 +7,7 @@ We want to call [Microsoft Graph API](https://learn.microsoft.com/en-us/graph/ov
 The following Graph API endpoints are supported:
  - [List teams](https://learn.microsoft.com/en-us/graph/api/teams-list?view=graph-rest-1.0&tabs=http)
  - [List allChannels](https://learn.microsoft.com/en-us/graph/api/team-list-allchannels?view=graph-rest-1.0&tabs=http)
+ - [List joinedTeams](https://learn.microsoft.com/en-us/graph/api/user-list-joinedteams?view=graph-rest-1.0&tabs=http)
 
 ## Assumption
 
@@ -327,6 +328,28 @@ class Tools:
                 self._refresh_graph_access_token()
                 response = requests.get(
                     url, headers=self._common_http_headers(), params=query_params, timeout=10
+                )
+            if response.status_code == 200:
+                return self._validate_return_size(response.text)
+            return f"Error {response.status_code}: {response.reason} - {response.text}"
+        except requests.exceptions.RequestException as e:
+            return f"Connection Error: {str(e)}"
+
+    def joined_teams(self):
+        """
+        Get the teams that the current user is a member of.
+
+        :return: Collection of team objects in the response body.
+        """
+        url = "https://graph.microsoft.com/v1.0/me/joinedTeams"
+        try:
+            response = requests.get(
+                url, headers=self._common_http_headers(), timeout=10
+            )
+            if response.status_code == 401:
+                self._refresh_graph_access_token()
+                response = requests.get(
+                    url, headers=self._common_http_headers(), timeout=10
                 )
             if response.status_code == 200:
                 return self._validate_return_size(response.text)
