@@ -7,6 +7,7 @@ We want to call [Microsoft Graph API](https://learn.microsoft.com/en-us/graph/ov
 The following Graph API endpoints are supported:
  - [List teams](https://learn.microsoft.com/en-us/graph/api/teams-list?view=graph-rest-1.0&tabs=http)
  - [List joinedTeams](https://learn.microsoft.com/en-us/graph/api/user-list-joinedteams?view=graph-rest-1.0&tabs=http)
+ - [Get team](https://learn.microsoft.com/en-us/graph/api/team-get?view=graph-rest-1.0&tabs=http)
  - [List allChannels](https://learn.microsoft.com/en-us/graph/api/team-list-allchannels?view=graph-rest-1.0&tabs=http)
 
 ## Assumption
@@ -188,10 +189,8 @@ class Tools:
         :raises Exception: If unable to load OAuth, missing refresh_token, or token refresh fails.
         """
         oauth_data = self._load_oauth_payload()
-
         refresh_token = oauth_data.get("refresh_token")
         scope = oauth_data.get("scope")
-
         if not refresh_token:
             raise ValueError("Missing refresh_token in OAuth payload")
 
@@ -202,7 +201,6 @@ class Tools:
         }
         if scope:
             form_data["scope"] = scope
-
         try:
             refresh_response = requests.post(
                 "https://login.microsoftonline.com/organizations/oauth2/v2.0/token",
@@ -214,11 +212,9 @@ class Tools:
                 raise Exception(
                     f"Token refresh failed ({refresh_response.status_code}): {refresh_response.text}"
                 )
-
             refreshed_payload = refresh_response.json()
             if not refreshed_payload.get("access_token"):
                 raise Exception("Token refresh response does not include access_token")
-
             merged_payload = dict(oauth_data)
             merged_payload.update(refreshed_payload)
             self._save_oauth_payload(merged_payload)
@@ -350,6 +346,49 @@ class Tools:
                 self._refresh_graph_access_token()
                 response = requests.get(
                     url, headers=self._common_http_headers(), timeout=10
+                )
+            if response.status_code == 200:
+                return self._validate_return_size(response.text)
+            return f"Error {response.status_code}: {response.reason} - {response.text}"
+        except requests.exceptions.RequestException as e:
+            return f"Connection Error: {str(e)}"
+
+    def team(
+            self,
+            team_id: str,
+            select: str = None,
+            expand: str = None,
+    ):
+        f"""
+        Retrieve the properties and relationships of the specified team.
+
+        :param team_id: The team ID.
+        :param select: The $select parameter in the Microsoft Graph API /teams/{team_id} endpoint allows you to limit the response to only the specific properties you need from the team object. Here are some examples:
+                        - Retrieve only the ID and display name of the team: https://graph.microsoft.com/v1.0/teams/{team_id}?$select=id,displayName
+                        - Retrieve only the team description: https://graph.microsoft.com/v1.0/teams/{team_id}?$select=description
+                        - Retrieve only the web URL of the team: https://graph.microsoft.com/v1.0/teams/{team_id}?$select=webUrl
+        :param expand: The $expand parameter in the Microsoft Graph API /teams/{team_id} endpoint allows you to include related resources inline with the team object in a single request. Here are some examples:
+                        - Retrieve the team and expand installed apps: https://graph.microsoft.com/v1.0/teams/{team_id}?$expand=installedApps
+                        - Retrieve the team and expand channels: https://graph.microsoft.com/v1.0/teams/{team_id}?$expand=channels
+                        - Retrieve the team and expand members: https://graph.microsoft.com/v1.0/teams/{team_id}?$expand=members
+        :return: A team object in the response body.
+        """
+        if not team_id or not str(team_id).strip():
+            return "Invalid team_id: team_id must be a non-empty string"
+        url = f"https://graph.microsoft.com/v1.0/teams/{team_id}"
+        query_params = {}
+        if select:
+            query_params["$select"] = select
+        if expand:
+            query_params["$expand"] = expand
+        try:
+            response = requests.get(
+                url, headers=self._common_http_headers(), params=query_params, timeout=10
+            )
+            if response.status_code == 401:
+                self._refresh_graph_access_token()
+                response = requests.get(
+                    url, headers=self._common_http_headers(), params=query_params, timeout=10
                 )
             if response.status_code == 200:
                 return self._validate_return_size(response.text)
