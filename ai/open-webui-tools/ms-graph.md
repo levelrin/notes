@@ -6,6 +6,7 @@ We want to call [Microsoft Graph API](https://learn.microsoft.com/en-us/graph/ov
 
 The following Graph API endpoints are supported:
  - [List teams](https://learn.microsoft.com/en-us/graph/api/teams-list?view=graph-rest-1.0&tabs=http)
+ - [List allChannels](https://learn.microsoft.com/en-us/graph/api/team-list-allchannels?view=graph-rest-1.0&tabs=http)
 
 ## Assumption
 
@@ -172,15 +173,6 @@ class Tools:
             "Accept": "application/json",
         }
 
-    def _is_token_expired_response(self, response: requests.Response) -> bool:
-        """
-        Check if the Graph API response indicates an authentication/token failure.
-
-        :param response: The response object from a Graph API request.
-        :return: True if the response indicates token expiry (401 status), False otherwise.
-        """
-        return response.status_code == 401
-
     def _refresh_graph_access_token(self) -> None:
         """
         Refresh the Graph API access token using the refresh token from the OAuth payload.
@@ -286,13 +278,59 @@ class Tools:
         if count: query_params["$count"] = count
         try:
             response = requests.get(url, headers=self._common_http_headers(), params=query_params, timeout=10)
-            if self._is_token_expired_response(response):
+            if response.status_code == 401:
                 self._refresh_graph_access_token()
                 response = requests.get(url, headers=self._common_http_headers(), params=query_params, timeout=10)
             if response.status_code == 200:
                 return self._validate_return_size(response.text)
             else:
                 return f"Error {response.status_code}: {response.reason} - {response.text}"
+        except requests.exceptions.RequestException as e:
+            return f"Connection Error: {str(e)}"
+
+    def all_channels(
+            self,
+            team_id: str,
+            filter_param: str = None,
+            select: str = None,
+    ):
+        f"""
+        Get the list of channels either in this team or shared with this team (incoming channels).
+        Populating the email and moderationSettings properties for a channel is an expensive operation that results in slow performance. Use $select to exclude the email and moderationSettings properties to improve performance.
+
+        :param team_id: The team ID.
+        :param filter_param: The $filter parameter restricts the response to only return channels that match your specified criteria, such as checking a channel's name, membership type, or description. Here are some examples:
+                              - Find a channel with a specific name: https://graph.microsoft.com/v1.0/teams/{team_id}/allChannels?$filter=displayName eq 'General'
+                              - Find only the private channels within the team: https://graph.microsoft.com/v1.0/teams/{team_id}/allChannels?$filter=membershipType eq 'private'
+                              - Find channels whose descriptions match a specific function: https://graph.microsoft.com/v1.0/teams/{team_id}/allChannels?$filter=description eq 'Regional Sales Coordination'
+        :param select: The $select parameter limits the returned properties for each channel to just the fields you explicitly request, which prevents the API from wasting processing time on data you don't need. Here are some examples:
+                        - Retrieve only the unique ID and display name of the channels: https://graph.microsoft.com/v1.0/teams/{team_id}/allChannels?$select=id,displayName
+                        - Retrieve only the privacy/membership classification of the channels: https://graph.microsoft.com/v1.0/teams/{team_id}/allChannels?$select=membershipType
+                        - Retrieve only the web URLs to link directly to the channels: https://graph.microsoft.com/v1.0/teams/{team_id}/allChannels?$select=webUrl
+        :return: Collection of channel objects in the response body.
+                 The response also includes the @odata.id property which can be used to access the channel and run other operations on the channel object.
+                 When the result set spans multiple pages, the response includes an @odata.nextLink property with a URL for retrieving the next page of results. 
+        """
+        if not team_id or not str(team_id).strip():
+            return "Invalid team_id: team_id must be a non-empty string"
+        url = f"https://graph.microsoft.com/v1.0/teams/{team_id}/allChannels"
+        query_params = {}
+        if filter_param:
+            query_params["$filter"] = filter_param
+        if select:
+            query_params["$select"] = select
+        try:
+            response = requests.get(
+                url, headers=self._common_http_headers(), params=query_params, timeout=10
+            )
+            if response.status_code == 401:
+                self._refresh_graph_access_token()
+                response = requests.get(
+                    url, headers=self._common_http_headers(), params=query_params, timeout=10
+                )
+            if response.status_code == 200:
+                return self._validate_return_size(response.text)
+            return f"Error {response.status_code}: {response.reason} - {response.text}"
         except requests.exceptions.RequestException as e:
             return f"Connection Error: {str(e)}"
 
