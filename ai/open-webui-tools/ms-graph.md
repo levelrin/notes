@@ -9,6 +9,7 @@ The following Graph API endpoints are supported:
  - [List joinedTeams](https://learn.microsoft.com/en-us/graph/api/user-list-joinedteams?view=graph-rest-1.0&tabs=http)
  - [Get team](https://learn.microsoft.com/en-us/graph/api/team-get?view=graph-rest-1.0&tabs=http)
  - [List allChannels](https://learn.microsoft.com/en-us/graph/api/team-list-allchannels?view=graph-rest-1.0&tabs=http)
+ - [List channels](https://learn.microsoft.com/en-us/graph/api/channel-list?view=graph-rest-1.0&tabs=http)
 
 ## Assumption
 
@@ -346,6 +347,49 @@ class Tools:
                 self._refresh_graph_access_token()
                 response = requests.get(
                     url, headers=self._common_http_headers(), timeout=10
+                )
+            if response.status_code == 200:
+                return self._validate_return_size(response.text)
+            return f"Error {response.status_code}: {response.reason} - {response.text}"
+        except requests.exceptions.RequestException as e:
+            return f"Connection Error: {str(e)}"
+
+    def channels(
+            self,
+            team_id: str,
+            filter_param: str = None,
+            select: str = None,
+    ):
+        f"""
+        Retrieve the list of channels in this team.
+
+        :param team_id: The team ID.
+        :param filter_param: The $filter parameter in the Microsoft Graph API /teams/{team_id}/channels endpoint allows you to narrow down the results by returning only the channels that match specific criteria. Here are some examples:
+                              - Find a channel with a specific name: https://graph.microsoft.com/v1.0/teams/{team_id}/channels?$filter=displayName eq 'General'
+                              - Find only standard channels: https://graph.microsoft.com/v1.0/teams/{team_id}/channels?$filter=membershipType eq 'standard'
+                              - Find channels with a specific description: https://graph.microsoft.com/v1.0/teams/{team_id}/channels?$filter=description eq 'Regional Sales Coordination'
+        :param select: The $select parameter in the Microsoft Graph API /teams/{team_id}/channels endpoint allows you to limit the response to only the specific properties you need from each channel object. Here are some examples:
+                        - Retrieve only the unique ID and display name of channels: https://graph.microsoft.com/v1.0/teams/{team_id}/channels?$select=id,displayName
+                        - Retrieve only the channel membership type: https://graph.microsoft.com/v1.0/teams/{team_id}/channels?$select=membershipType
+                        - Retrieve only the web URLs for channels: https://graph.microsoft.com/v1.0/teams/{team_id}/channels?$select=webUrl
+        :return: Collection of Channel objects in the response body.
+        """
+        if not team_id or not str(team_id).strip():
+            return "Invalid team_id: team_id must be a non-empty string"
+        url = f"https://graph.microsoft.com/v1.0/teams/{team_id}/channels"
+        query_params = {}
+        if filter_param:
+            query_params["$filter"] = filter_param
+        if select:
+            query_params["$select"] = select
+        try:
+            response = requests.get(
+                url, headers=self._common_http_headers(), params=query_params, timeout=10
+            )
+            if response.status_code == 401:
+                self._refresh_graph_access_token()
+                response = requests.get(
+                    url, headers=self._common_http_headers(), params=query_params, timeout=10
                 )
             if response.status_code == 200:
                 return self._validate_return_size(response.text)
