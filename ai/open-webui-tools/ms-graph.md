@@ -11,6 +11,7 @@ The following Graph API endpoints are supported:
  - [List allChannels](https://learn.microsoft.com/en-us/graph/api/team-list-allchannels?view=graph-rest-1.0&tabs=http)
  - [List channels](https://learn.microsoft.com/en-us/graph/api/channel-list?view=graph-rest-1.0&tabs=http)
  - [Get channel](https://learn.microsoft.com/en-us/graph/api/channel-get?view=graph-rest-1.0&tabs=http)
+ - [Get primaryChannel](https://learn.microsoft.com/en-us/graph/api/team-get-primarychannel?view=graph-rest-1.0&tabs=http)
 
 ## Assumption
 
@@ -471,6 +472,56 @@ class Tools:
             return "Invalid team_id: team_id must be a non-empty string"
         url = f"https://graph.microsoft.com/v1.0/teams/{team_id}"
         query_params = {}
+        if select:
+            query_params["$select"] = select
+        if expand:
+            query_params["$expand"] = expand
+        try:
+            response = requests.get(
+                url, headers=self._common_http_headers(), params=query_params, timeout=10
+            )
+            if response.status_code == 401:
+                self._refresh_graph_access_token()
+                response = requests.get(
+                    url, headers=self._common_http_headers(), params=query_params, timeout=10
+                )
+            if response.status_code == 200:
+                return self._validate_return_size(response.text)
+            return f"Error {response.status_code}: {response.reason} - {response.text}"
+        except requests.exceptions.RequestException as e:
+            return f"Connection Error: {str(e)}"
+
+    def primary_channel(
+            self,
+            team_id: str,
+            filter_param: str = None,
+            select: str = None,
+            expand: str = None,
+    ):
+        f"""
+        Get the default channel, General, of a team.
+
+        :param team_id: The team ID.
+        :param filter_param: The $filter parameter in the Microsoft Graph API /teams/{team_id}/primaryChannel endpoint allows you to customize the response by applying OData filter expressions. Here are some examples:
+                              - Filter by display name: https://graph.microsoft.com/v1.0/teams/{team_id}/primaryChannel?$filter=displayName eq 'General'
+                              - Filter by membership type: https://graph.microsoft.com/v1.0/teams/{team_id}/primaryChannel?$filter=membershipType eq 'standard'
+                              - Filter by description: https://graph.microsoft.com/v1.0/teams/{team_id}/primaryChannel?$filter=description eq 'General discussions'
+        :param select: The $select parameter in the Microsoft Graph API /teams/{team_id}/primaryChannel endpoint allows you to limit the response to only the specific properties you need from the channel object. Here are some examples:
+                        - Retrieve only the unique ID and display name of the channel: https://graph.microsoft.com/v1.0/teams/{team_id}/primaryChannel?$select=id,displayName
+                        - Retrieve only the channel membership type: https://graph.microsoft.com/v1.0/teams/{team_id}/primaryChannel?$select=membershipType
+                        - Retrieve only the web URL of the channel: https://graph.microsoft.com/v1.0/teams/{team_id}/primaryChannel?$select=webUrl
+        :param expand: The $expand parameter in the Microsoft Graph API /teams/{team_id}/primaryChannel endpoint allows you to include related resources inline with the channel object in a single request. Here are some examples:
+                        - Retrieve the channel and expand tabs: https://graph.microsoft.com/v1.0/teams/{team_id}/primaryChannel?$expand=tabs
+                        - Retrieve the channel and expand members: https://graph.microsoft.com/v1.0/teams/{team_id}/primaryChannel?$expand=members
+                        - Retrieve the channel and expand filesFolder: https://graph.microsoft.com/v1.0/teams/{team_id}/primaryChannel?$expand=filesFolder
+        :return: A channel object in the response body.
+        """
+        if not team_id or not str(team_id).strip():
+            return "Invalid team_id: team_id must be a non-empty string"
+        url = f"https://graph.microsoft.com/v1.0/teams/{team_id}/primaryChannel"
+        query_params = {}
+        if filter_param:
+            query_params["$filter"] = filter_param
         if select:
             query_params["$select"] = select
         if expand:
