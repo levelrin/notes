@@ -12,107 +12,26 @@ The following Graph API endpoints are supported:
  - [List channels](https://learn.microsoft.com/en-us/graph/api/channel-list?view=graph-rest-1.0&tabs=http)
  - [Get channel](https://learn.microsoft.com/en-us/graph/api/channel-get?view=graph-rest-1.0&tabs=http)
  - [Get primaryChannel](https://learn.microsoft.com/en-us/graph/api/team-get-primarychannel?view=graph-rest-1.0&tabs=http)
-
-## Assumption
-
-We are just a Microsoft user and don't know the Azure application's client secret.
+ - [List channel messages](https://learn.microsoft.com/en-us/graph/api/channel-list-messages?view=graph-rest-1.0&tabs=http)
 
 ## Setup
 
-Since we don't know our organization's Azure applications information, we will use [OAuth 2.0 Device Code Flow](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-device-code).
+You should bring our own token as a JSON file.
 
-To obtain the access token, we can start with a command like this:
-```sh
-curl -X POST "https://login.microsoftonline.com/organizations/oauth2/v2.0/devicecode" -H "Content-Type: application/x-www-form-urlencoded" -d "client_id=1fec8e78-bce4-4aaf-ab1b-5451cc387264&scope=https://graph.microsoft.com/Team.ReadBasic.All offline_access" 
-```
-
-Note that the client ID `1fec8e78-bce4-4aaf-ab1b-5451cc387264` is a globally available Azure application configured by Microsoft. That application is used by Microsoft Power Apps and PowerShell.
-
-By the way, we can also use the client ID `de8bc8b5-d9f9-48b1-a8ad-b748da725064`, which is another globally available application used by Microsoft Office and Graph Explorer.
-
-The response body would look like this:
-```json
-{
-  "user_code": "OXJ...",
-  "device_code": "OBg...",
-  "verification_uri": "https://login.microsoft.com/device",
-  "expires_in": 900,
-  "interval": 5,
-  "message": "To sign in, use a web browser to open the page https://login.microsoft.com/device and enter the code OXJ... to authenticate." 
-}
-```
-
-Follow the instructions in the attribute `message` of the payload.
-
-After that, run a command like this:
-```sh
-curl -X POST "https://login.microsoftonline.com/organizations/oauth2/v2.0/token" -H "Content-Type: application/x-www-form-urlencoded" -d "grant_type=urn:ietf:params:oauth:grant-type:device_code&client_id=1fec8e78-bce4-4aaf-ab1b-5451cc387264&device_code=OBg..." 
-```
-
-The response body would look like this:
-```json
-{
-  "token_type": "Bearer",
-  "scope": "email openid profile https://graph.microsoft.com/AppCatalog.Read.All https://graph.microsoft.com/Calendars.Read https://graph.microsoft.com/Calendars.Read.Shared https://graph.microsoft.com/Calendars.ReadWrite https://graph.microsoft.com/Calendars.ReadWrite.Shared https://graph.microsoft.com/Channel.ReadBasic.All https://graph.microsoft.com/ChatMessage.Send https://graph.microsoft.com/Contacts.ReadWrite.Shared https://graph.microsoft.com/Files.ReadWrite.All https://graph.microsoft.com/FileStorageContainer.Selected https://graph.microsoft.com/Group.Read.All https://graph.microsoft.com/InformationProtectionPolicy.Read https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/MailboxSettings.ReadWrite https://graph.microsoft.com/Notes.ReadWrite.All https://graph.microsoft.com/Organization.Read.All https://graph.microsoft.com/People.Read https://graph.microsoft.com/Place.Read.All https://graph.microsoft.com/Sites.ReadWrite.All https://graph.microsoft.com/Tasks.ReadWrite https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/TeamsActivity.Send https://graph.microsoft.com/TeamsAppInstallation.ReadForTeam https://graph.microsoft.com/TeamsTab.Create https://graph.microsoft.com/User.ReadBasic.All",
-  "expires_in": 5099,
-  "ext_expires_in": 5099,
-  "access_token": "eyJ...",
-  "refresh_token": "1.A...",
-  "foci": "1" 
-}
-```
-
-By the way, we can refresh the token like this:
-```sh
-curl -X POST "https://login.microsoftonline.com/organizations/oauth2/v2.0/token" -H "Content-Type: application/x-www-form-urlencoded" -d "grant_type=refresh_token&client_id=1fec8e78-bce4-4aaf-ab1b-5451cc387264&refresh_token=1.A...&scope=https://graph.microsoft.com/Team.ReadBasic.All offline_access" 
-```
-
-The response body would look like this:
-```json
-{
-  "token_type": "Bearer",
-  "scope": "email openid profile https://graph.microsoft.com/AppCatalog.Read.All https://graph.microsoft.com/Calendars.Read https://graph.microsoft.com/Calendars.Read.Shared https://graph.microsoft.com/Calendars.ReadWrite https://graph.microsoft.com/Calendars.ReadWrite.Shared https://graph.microsoft.com/Channel.ReadBasic.All https://graph.microsoft.com/ChatMessage.Send https://graph.microsoft.com/Contacts.ReadWrite.Shared https://graph.microsoft.com/Files.ReadWrite.All https://graph.microsoft.com/FileStorageContainer.Selected https://graph.microsoft.com/Group.Read.All https://graph.microsoft.com/InformationProtectionPolicy.Read https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/MailboxSettings.ReadWrite https://graph.microsoft.com/Notes.ReadWrite.All https://graph.microsoft.com/Organization.Read.All https://graph.microsoft.com/People.Read https://graph.microsoft.com/Place.Read.All https://graph.microsoft.com/Sites.ReadWrite.All https://graph.microsoft.com/Tasks.ReadWrite https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/TeamsActivity.Send https://graph.microsoft.com/TeamsAppInstallation.ReadForTeam https://graph.microsoft.com/TeamsTab.Create https://graph.microsoft.com/User.ReadBasic.All",
-  "expires_in": 5050,
-  "ext_expires_in": 5050,
-  "access_token": "eyJ...",
-  "refresh_token": "1.AV...",
-  "foci": "1" 
-}
-```
-
-After the authentication, save the access token payload as a file.
-
-For example, we can do the following:
-```sh
-mkdir -p /app/backend/data/
-vim /app/backend/data/graph-oauth.json
-```
-
-The content should look like this:
-```json
-{
-  "token_type": "Bearer",
-  "scope": "email openid profile https://graph.microsoft.com/AppCatalog.Read.All https://graph.microsoft.com/Calendars.Read https://graph.microsoft.com/Calendars.Read.Shared https://graph.microsoft.com/Calendars.ReadWrite https://graph.microsoft.com/Calendars.ReadWrite.Shared https://graph.microsoft.com/Channel.ReadBasic.All https://graph.microsoft.com/ChatMessage.Send https://graph.microsoft.com/Contacts.ReadWrite.Shared https://graph.microsoft.com/Files.ReadWrite.All https://graph.microsoft.com/FileStorageContainer.Selected https://graph.microsoft.com/Group.Read.All https://graph.microsoft.com/InformationProtectionPolicy.Read https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/MailboxSettings.ReadWrite https://graph.microsoft.com/Notes.ReadWrite.All https://graph.microsoft.com/Organization.Read.All https://graph.microsoft.com/People.Read https://graph.microsoft.com/Place.Read.All https://graph.microsoft.com/Sites.ReadWrite.All https://graph.microsoft.com/Tasks.ReadWrite https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/TeamsActivity.Send https://graph.microsoft.com/TeamsAppInstallation.ReadForTeam https://graph.microsoft.com/TeamsTab.Create https://graph.microsoft.com/User.ReadBasic.All",
-  "expires_in": 5099,
-  "ext_expires_in": 5099,
-  "access_token": "eyJ...",
-  "refresh_token": "1.A...",
-  "foci": "1" 
-}
-```
+Let's say the token is stored in this path: /app/backend/data/graph-oauth.json
 
 We recommend adjusting the permission like this:
 ```sh
 chmod o+rw /app/backend/data/graph-oauth.json
 ```
 
-We are set!
+You are set!
 
 Fortunately, this operation is one-time only.
 
-Once we create the access token file, the Python code in the section below will use the refresh token and update the file automatically.
+Once you create the access token file, the Python code in the section below will use the refresh token and update the file automatically.
 
-When we apply the Python code in the section below, we should configure valves, especially `OAUTH_JSON_PATH`.
+When you apply the Python code in the section below, you should configure valves, especially `OAUTH_JSON_PATH`.
 
 ## Code
 
@@ -524,6 +443,57 @@ class Tools:
             query_params["$filter"] = filter_param
         if select:
             query_params["$select"] = select
+        if expand:
+            query_params["$expand"] = expand
+        try:
+            response = requests.get(
+                url, headers=self._common_http_headers(), params=query_params, timeout=10
+            )
+            if response.status_code == 401:
+                self._refresh_graph_access_token()
+                response = requests.get(
+                    url, headers=self._common_http_headers(), params=query_params, timeout=10
+                )
+            if response.status_code == 200:
+                return self._validate_return_size(response.text)
+            return f"Error {response.status_code}: {response.reason} - {response.text}"
+        except requests.exceptions.RequestException as e:
+            return f"Connection Error: {str(e)}"
+
+    def channel_messages(
+            self,
+            team_id: str,
+            channel_id: str,
+            top: int = None,
+            expand: str = None,
+    ):
+        f"""
+        Retrieve the list of messages (without the replies) in a channel of a team.
+        To get the replies for a message, call the list message replies or the get message reply API.
+        This method supports federation. To list channel messages in application context, the request must be made from the tenant that the channel owner belongs to (represented by the tenantId property on the channel).
+
+        :param team_id: The team ID.
+        :param channel_id: The channel ID.
+        :param top: Apply $top to specify the number of channel messages returned per page in the response. The default page size is 20 messages. You can extend up to 50 channel messages per page. Here are some examples:
+                     - Retrieve only the top 10 messages: https://graph.microsoft.com/v1.0/teams/{team_id}/channels/{channel_id}/messages?$top=10
+                     - Retrieve only the top 20 messages: https://graph.microsoft.com/v1.0/teams/{team_id}/channels/{channel_id}/messages?$top=20
+                     - Retrieve the maximum 50 messages per page: https://graph.microsoft.com/v1.0/teams/{team_id}/channels/{channel_id}/messages?$top=50
+        :param expand: Apply $expand to get the properties of channel messages that are replies. By default, a response can include up to 200 replies. For an operation that expands channel messages with more than 200 replies, use the request URL returned in replies@odata.nextLink to get the next page of replies. Here are some examples:
+                        - Expand replies in each root message: https://graph.microsoft.com/v1.0/teams/{team_id}/channels/{channel_id}/messages?$expand=replies
+                        - Expand replies with selected fields: https://graph.microsoft.com/v1.0/teams/{team_id}/channels/{channel_id}/messages?$expand=replies($select=id,from,body)
+                        - Expand replies and include the sender info: https://graph.microsoft.com/v1.0/teams/{team_id}/channels/{channel_id}/messages?$expand=replies($expand=from)
+        :return: A collection of chatMessage objects in the response body. The channel messages in the response are sorted by the last modified date of the entire reply chain, including both the root channel message and its replies.
+        """
+        if not team_id or not str(team_id).strip():
+            return "Invalid team_id: team_id must be a non-empty string"
+        if not channel_id or not str(channel_id).strip():
+            return "Invalid channel_id: channel_id must be a non-empty string"
+        if top is not None and (top < 1 or top > 50):
+            return "Invalid top: top must be between 1 and 50"
+        url = f"https://graph.microsoft.com/v1.0/teams/{team_id}/channels/{channel_id}/messages"
+        query_params = {}
+        if top is not None:
+            query_params["$top"] = top
         if expand:
             query_params["$expand"] = expand
         try:
