@@ -13,6 +13,7 @@ The following Graph API endpoints are supported:
  - [Get channel](https://learn.microsoft.com/en-us/graph/api/channel-get?view=graph-rest-1.0&tabs=http)
  - [Get primaryChannel](https://learn.microsoft.com/en-us/graph/api/team-get-primarychannel?view=graph-rest-1.0&tabs=http)
  - [List channel messages](https://learn.microsoft.com/en-us/graph/api/channel-list-messages?view=graph-rest-1.0&tabs=http)
+ - [Get chatMessage in a channel or chat](https://learn.microsoft.com/en-us/graph/api/chatmessage-get?view=graph-rest-1.0&tabs=http)
 
 ## Setup
 
@@ -504,6 +505,114 @@ class Tools:
                 self._refresh_graph_access_token()
                 response = requests.get(
                     url, headers=self._common_http_headers(), params=query_params, timeout=10
+                )
+            if response.status_code == 200:
+                return self._validate_return_size(response.text)
+            return f"Error {response.status_code}: {response.reason} - {response.text}"
+        except requests.exceptions.RequestException as e:
+            return f"Connection Error: {str(e)}"
+
+    def channel_message(
+            self,
+            team_id: str,
+            channel_id: str,
+            message_id: str,
+    ):
+        """
+        Retrieve a single message in a channel.
+
+        :param team_id: The team ID.
+        :param channel_id: The channel ID.
+        :param message_id: The message ID.
+        :return: A chatMessage object in the response body.
+        """
+        if not team_id or not str(team_id).strip():
+            return "Invalid team_id: team_id must be a non-empty string"
+        if not channel_id or not str(channel_id).strip():
+            return "Invalid channel_id: channel_id must be a non-empty string"
+        if not message_id or not str(message_id).strip():
+            return "Invalid message_id: message_id must be a non-empty string"
+        url = f"https://graph.microsoft.com/v1.0/teams/{team_id}/channels/{channel_id}/messages/{message_id}"
+        try:
+            response = requests.get(
+                url, headers=self._common_http_headers(), timeout=10
+            )
+            if response.status_code == 401:
+                self._refresh_graph_access_token()
+                response = requests.get(
+                    url, headers=self._common_http_headers(), timeout=10
+                )
+            if response.status_code == 200:
+                return self._validate_return_size(response.text)
+            return f"Error {response.status_code}: {response.reason} - {response.text}"
+        except requests.exceptions.RequestException as e:
+            return f"Connection Error: {str(e)}"
+
+    def channel_reply(
+            self,
+            team_id: str,
+            channel_id: str,
+            message_id: str,
+            reply_id: str,
+    ):
+        """
+        Retrieve a single reply in a channel.
+
+        :param team_id: The team ID.
+        :param channel_id: The channel ID.
+        :param message_id: The message ID.
+        :param reply_id: The reply ID.
+        :return: A chatMessage object in the response body.
+        """
+        if not team_id or not str(team_id).strip():
+            return "Invalid team_id: team_id must be a non-empty string"
+        if not channel_id or not str(channel_id).strip():
+            return "Invalid channel_id: channel_id must be a non-empty string"
+        if not message_id or not str(message_id).strip():
+            return "Invalid message_id: message_id must be a non-empty string"
+        if not reply_id or not str(reply_id).strip():
+            return "Invalid reply_id: reply_id must be a non-empty string"
+        url = f"https://graph.microsoft.com/v1.0/teams/{team_id}/channels/{channel_id}/messages/{message_id}/replies/{reply_id}"
+        try:
+            response = requests.get(
+                url, headers=self._common_http_headers(), timeout=10
+            )
+            if response.status_code == 401:
+                self._refresh_graph_access_token()
+                response = requests.get(
+                    url, headers=self._common_http_headers(), timeout=10
+                )
+            if response.status_code == 200:
+                return self._validate_return_size(response.text)
+            return f"Error {response.status_code}: {response.reason} - {response.text}"
+        except requests.exceptions.RequestException as e:
+            return f"Connection Error: {str(e)}"
+
+    def chat_message(
+            self,
+            chat_id: str,
+            message_id: str,
+    ):
+        """
+        Retrieve a single message in a chat.
+
+        :param chat_id: The chat ID.
+        :param message_id: The message ID.
+        :return: A chatMessage object in the response body.
+        """
+        if not chat_id or not str(chat_id).strip():
+            return "Invalid chat_id: chat_id must be a non-empty string"
+        if not message_id or not str(message_id).strip():
+            return "Invalid message_id: message_id must be a non-empty string"
+        url = f"https://graph.microsoft.com/v1.0/chats/{chat_id}/messages/{message_id}"
+        try:
+            response = requests.get(
+                url, headers=self._common_http_headers(), timeout=10
+            )
+            if response.status_code == 401:
+                self._refresh_graph_access_token()
+                response = requests.get(
+                    url, headers=self._common_http_headers(), timeout=10
                 )
             if response.status_code == 200:
                 return self._validate_return_size(response.text)
