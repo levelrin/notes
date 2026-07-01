@@ -14,6 +14,7 @@ The following Graph API endpoints are supported:
  - [Get primaryChannel](https://learn.microsoft.com/en-us/graph/api/team-get-primarychannel?view=graph-rest-1.0&tabs=http)
  - [List channel messages](https://learn.microsoft.com/en-us/graph/api/channel-list-messages?view=graph-rest-1.0&tabs=http)
  - [Get chatMessage in a channel or chat](https://learn.microsoft.com/en-us/graph/api/chatmessage-get?view=graph-rest-1.0&tabs=http)
+ - [List chats](https://learn.microsoft.com/en-us/graph/api/chat-list?view=graph-rest-1.0&tabs=http)
 
 ## Setup
 
@@ -626,6 +627,62 @@ class Tools:
                 self._refresh_graph_access_token()
                 response = requests.get(
                     url, headers=self._common_http_headers(), timeout=10
+                )
+            if response.status_code == 200:
+                return self._validate_return_size(response.text)
+            return f"Error {response.status_code}: {response.reason} - {response.text}"
+        except requests.exceptions.RequestException as e:
+            return f"Connection Error: {str(e)}"
+
+    def chats(
+            self,
+            expand: str = None,
+            top: int = None,
+            filter_param: str = None,
+            orderby: str = None,
+    ):
+        f"""
+        Retrieve the list of chats that the user is part of.
+
+        :param expand: The $expand parameter in the Microsoft Graph API /chats endpoint allows you to include related properties inline with each chat object. Currently, this endpoint supports members and lastMessagePreview. Here are some examples:
+                        - Include chat members in each chat result: https://graph.microsoft.com/v1.0/chats?$expand=members
+                        - Include last message preview in each chat result: https://graph.microsoft.com/v1.0/chats?$expand=lastMessagePreview
+                        - Include both members and last message preview: https://graph.microsoft.com/v1.0/chats?$expand=members,lastMessagePreview
+        :param top: The $top parameter controls the number of chats returned per response page. The maximum allowed value is 50. Here are some examples:
+                     - Retrieve up to 10 chats per page: https://graph.microsoft.com/v1.0/chats?$top=10
+                     - Retrieve up to 25 chats per page: https://graph.microsoft.com/v1.0/chats?$top=25
+                     - Retrieve the maximum 50 chats per page: https://graph.microsoft.com/v1.0/chats?$top=50
+                    Note: The $top parameter might not return all chats within a single response object. If the result set spans multiple pages, the response includes an @odata.nextLink property that contains the URL for the next page. Continue requesting each @odata.nextLink URL until all results are returned.
+        :param filter_param: The $filter parameter in the Microsoft Graph API /chats endpoint allows you to filter chat results based on supported properties and operators. Here are some examples:
+                              - Filter chats by chat type: https://graph.microsoft.com/v1.0/chats?$filter=chatType eq 'group'
+                              - Filter chats by topic: https://graph.microsoft.com/v1.0/chats?$filter=topic eq 'Project Apollo'
+                              - Filter chats by creation date: https://graph.microsoft.com/v1.0/chats?$filter=createdDateTime ge 2024-01-01T00:00:00Z
+        :param orderby: The $orderby parameter in the Microsoft Graph API /chats endpoint currently supports lastMessagePreview/createdDateTime in descending order only. Ascending order is not supported. Here are some examples:
+                        - Order by last message preview time descending: https://graph.microsoft.com/v1.0/chats?$orderby=lastMessagePreview/createdDateTime desc
+                        - Combine with $top for recent chats: https://graph.microsoft.com/v1.0/chats?$orderby=lastMessagePreview/createdDateTime desc&$top=20
+                        - Combine with $filter and $orderby: https://graph.microsoft.com/v1.0/chats?$filter=chatType eq 'group'&$orderby=lastMessagePreview/createdDateTime desc
+        :return: A collection of chat objects in the response body.
+        """
+        if top is not None and (top < 1 or top > 50):
+            return "Invalid top: top must be between 1 and 50"
+        url = "https://graph.microsoft.com/v1.0/chats"
+        query_params = {}
+        if expand:
+            query_params["$expand"] = expand
+        if top is not None:
+            query_params["$top"] = top
+        if filter_param:
+            query_params["$filter"] = filter_param
+        if orderby:
+            query_params["$orderby"] = orderby
+        try:
+            response = requests.get(
+                url, headers=self._common_http_headers(), params=query_params, timeout=10
+            )
+            if response.status_code == 401:
+                self._refresh_graph_access_token()
+                response = requests.get(
+                    url, headers=self._common_http_headers(), params=query_params, timeout=10
                 )
             if response.status_code == 200:
                 return self._validate_return_size(response.text)
