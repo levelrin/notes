@@ -15,6 +15,7 @@ The following Graph API endpoints are supported:
  - [List channel messages](https://learn.microsoft.com/en-us/graph/api/channel-list-messages?view=graph-rest-1.0&tabs=http)
  - [Get chatMessage in a channel or chat](https://learn.microsoft.com/en-us/graph/api/chatmessage-get?view=graph-rest-1.0&tabs=http)
  - [List chats](https://learn.microsoft.com/en-us/graph/api/chat-list?view=graph-rest-1.0&tabs=http)
+ - [List messages in a chat](https://learn.microsoft.com/en-us/graph/api/chat-list-messages?view=graph-rest-1.0&tabs=http)
 
 ## Setup
 
@@ -675,6 +676,58 @@ class Tools:
             query_params["$filter"] = filter_param
         if orderby:
             query_params["$orderby"] = orderby
+        try:
+            response = requests.get(
+                url, headers=self._common_http_headers(), params=query_params, timeout=10
+            )
+            if response.status_code == 401:
+                self._refresh_graph_access_token()
+                response = requests.get(
+                    url, headers=self._common_http_headers(), params=query_params, timeout=10
+                )
+            if response.status_code == 200:
+                return self._validate_return_size(response.text)
+            return f"Error {response.status_code}: {response.reason} - {response.text}"
+        except requests.exceptions.RequestException as e:
+            return f"Connection Error: {str(e)}"
+
+    def chat_messages(
+            self,
+            chat_id: str,
+            top: int = None,
+            orderby: str = None,
+            filter_param: str = None,
+    ):
+        f"""
+        Retrieve the list of messages in a chat.
+
+        :param chat_id: The chat ID.
+        :param top: The $top parameter controls the number of items per response page. The maximum allowed value is 50. Here are some examples:
+                     - Retrieve up to 10 messages per page: https://graph.microsoft.com/v1.0/chats/{chat_id}/messages?$top=10
+                     - Retrieve up to 25 messages per page: https://graph.microsoft.com/v1.0/chats/{chat_id}/messages?$top=25
+                     - Retrieve the maximum 50 messages per page: https://graph.microsoft.com/v1.0/chats/{chat_id}/messages?$top=50
+        :param orderby: The $orderby parameter in the Microsoft Graph API /chats/{chat_id}/messages endpoint currently supports the lastModifiedDateTime (default) and createdDateTime properties in descending order only. Ascending order is currently not supported. Here are some examples:
+                        - Order by last modified time descending: https://graph.microsoft.com/v1.0/chats/{chat_id}/messages?$orderby=lastModifiedDateTime desc
+                        - Order by created time descending: https://graph.microsoft.com/v1.0/chats/{chat_id}/messages?$orderby=createdDateTime desc
+                        - Combine with $top for recent messages: https://graph.microsoft.com/v1.0/chats/{chat_id}/messages?$orderby=createdDateTime desc&$top=20
+        :param filter_param: The $filter parameter sets the date range filter for lastModifiedDateTime and createdDateTime properties. lastModifiedDateTime supports gt and lt operators, and createdDateTime supports the lt operator. You can only filter results if the request URL contains both $orderby and $filter configured for the same property; otherwise, the $filter query option is ignored. Here are some examples:
+                              - Filter by last modified time greater than a timestamp: https://graph.microsoft.com/v1.0/chats/{chat_id}/messages?$orderby=lastModifiedDateTime desc&$filter=lastModifiedDateTime gt 2024-01-01T00:00:00Z
+                              - Filter by last modified time less than a timestamp: https://graph.microsoft.com/v1.0/chats/{chat_id}/messages?$orderby=lastModifiedDateTime desc&$filter=lastModifiedDateTime lt 2024-02-01T00:00:00Z
+                              - Filter by created time less than a timestamp: https://graph.microsoft.com/v1.0/chats/{chat_id}/messages?$orderby=createdDateTime desc&$filter=createdDateTime lt 2024-02-01T00:00:00Z
+        :return: A collection of chatMessage objects in the response body.
+        """
+        if not chat_id or not str(chat_id).strip():
+            return "Invalid chat_id: chat_id must be a non-empty string"
+        if top is not None and (top < 1 or top > 50):
+            return "Invalid top: top must be between 1 and 50"
+        url = f"https://graph.microsoft.com/v1.0/chats/{chat_id}/messages"
+        query_params = {}
+        if top is not None:
+            query_params["$top"] = top
+        if orderby:
+            query_params["$orderby"] = orderby
+        if filter_param:
+            query_params["$filter"] = filter_param
         try:
             response = requests.get(
                 url, headers=self._common_http_headers(), params=query_params, timeout=10
