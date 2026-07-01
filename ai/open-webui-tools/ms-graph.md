@@ -32,7 +32,7 @@ Fortunately, this operation is one-time only.
 
 Once you create the access token file, the Python code in the section below will use the refresh token and update the file automatically.
 
-When you apply the Python code in the section below, you should configure valves, especially `OAUTH_JSON_PATH`.
+When you apply the Python code in the section below, you should configure valves.
 
 ## Code
 
@@ -50,9 +50,17 @@ class Tools:
             default="/app/backend/data/graph-oauth.json",
             description="Path to OAuth payload, which contains the access token and refresh token.",
         )
+        GRAPH_TENANT_ID: str = Field(
+            default="organizations",
+            description="Azure tenant ID used for OAuth token refresh endpoint.",
+        )
         GRAPH_CLIENT_ID: str = Field(
             default="1fec8e78-bce4-4aaf-ab1b-5451cc387264",
             description="Azure client ID for Graph API.",
+        )
+        GRAPH_CLIENT_SECRET: str = Field(
+            default="",
+            description="Azure client secret used for OAuth token refresh.",
         )
         MAX_RESPONSE_SIZE: int = Field(
             default=67000,
@@ -122,13 +130,18 @@ class Tools:
             "grant_type": "refresh_token",
             "refresh_token": refresh_token,
             "client_id": self.valves.GRAPH_CLIENT_ID,
+            "client_secret": self.valves.GRAPH_CLIENT_SECRET,
+            "resource": "https://graph.microsoft.com",
+            "scope": "openid",
         }
-        if scope:
-            form_data["scope"] = scope
+        token_url = f"https://login.microsoftonline.com/{self.valves.GRAPH_TENANT_ID}/oauth2/token"
         try:
             refresh_response = requests.post(
-                "https://login.microsoftonline.com/organizations/oauth2/v2.0/token",
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                token_url,
+                headers={
+                    "Host": "login.microsoftonline.com",
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
                 data=form_data,
                 timeout=10,
             )
@@ -619,5 +632,6 @@ class Tools:
             return f"Error {response.status_code}: {response.reason} - {response.text}"
         except requests.exceptions.RequestException as e:
             return f"Connection Error: {str(e)}"
+
 
 ```
